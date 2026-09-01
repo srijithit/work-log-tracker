@@ -362,7 +362,7 @@ function loginUser(userName, pin) {
 
   const expectedPin = user.pin || '1234';
   if (pin !== expectedPin) {
-    showLoginError(`Incorrect PIN for ${user.name}. (Default: 1234)`);
+    showLoginError(`Incorrect PIN entered for ${user.name}.`);
     loginPinInput.focus();
     return;
   }
@@ -721,7 +721,7 @@ function renderUserList() {
         </div>
         <div>
           <span class="font-bold text-slate-800 block">${escapeHtml(user.name)}</span>
-          <span class="text-[10px] text-slate-400 block">${escapeHtml(user.email || 'No email')} • PIN: ${user.pin || '1234'}</span>
+          <span class="text-[10px] text-slate-400 block">${escapeHtml(user.email || 'No email')}</span>
         </div>
       </div>
       <button 
