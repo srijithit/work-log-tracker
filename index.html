@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Log Tracker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+
+  <!-- Header & Navigation -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+          <i data-lucide="calendar-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 leading-tight">Work Log Tracker</h1>
+          <p class="text-xs text-slate-500 font-medium" id="currentMonthYearBadge">September 2026</p>
+        </div>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <button id="addUserBtn" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>Members</span>
+        </button>
+
+        <button id="manageProjectsBtn" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
+          <i data-lucide="folder-plus" class="w-4 h-4"></i>
+          <span>Projects</span>
+        </button>
+
+        <button id="openRemindersBtn" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer" title="Auto Notifications: Mon-Sat 5:00 PM">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-600 animate-pulse"></i>
+          <span>5 PM Alerts</span>
+        </button>
+
+        <button id="exportCsvBtn" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer" title="Export Spreadsheet CSV">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          <span>Export CSV</span>
+        </button>
+
+        <button id="exportDocxBtn" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer" title="Export DHIGROWTH Developer Performance & Work Log Report (.docx)">
+          <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i>
+          <span>Export DOCX</span>
+        </button>
+
+        <button id="openAddTaskModalBtn" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/25 rounded-lg transition-all transform active:scale-95 cursor-pointer">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Log Work</span>
+        </button>
+
+        <!-- Current Logged In User Pill & Settings -->
+        <div class="h-6 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
+        <div id="currentUserBadgeContainer" class="flex items-center gap-1.5 pl-1">
+          <!-- Profile Badge (opens Settings on click) -->
+          <div class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-xl border border-slate-200 cursor-pointer transition-all" id="openUserSettingsBtn" title="Click to Change PIN / Profile Settings">
+            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[11px]" id="headerUserAvatar">
+              S
+            </div>
+            <div class="text-left">
+              <span class="text-xs font-bold text-slate-900 block leading-tight" id="headerUserName">Srijith</span>
+              <span class="text-[9px] font-semibold text-emerald-600 uppercase block">Settings & PIN</span>
+            </div>
+            <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400 ml-0.5"></i>
+          </div>
+
+          <!-- Switch User Button -->
+          <button id="switchUserBtn" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer" title="Switch Account / Sign Out">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI / Overview Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Entries -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Entries</p>
+          <p class="text-2xl font-extrabold text-slate-800" id="statTotalEntries">0</p>
+        </div>
+      </div>
+
+      <!-- Total Hours -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="clock" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Work Hours</p>
+          <p class="text-2xl font-extrabold text-emerald-600" id="statTotalHours">0h 0m</p>
+        </div>
+      </div>
+
+      <!-- Active Projects -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+          <i data-lucide="folder-kanban" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Projects Worked</p>
+          <p class="text-2xl font-extrabold text-slate-800" id="statActiveProjects">0</p>
+        </div>
+      </div>
+
+      <!-- Active Users -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Members</p>
+          <p class="text-2xl font-extrabold text-slate-800" id="statTotalUsers">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Selection Bar / Tabs & Filters -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <!-- User Tabs -->
+        <div class="flex-1 overflow-hidden">
+          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">
+            Team Member Tabs
+          </label>
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-thin" id="userTabsContainer">
+            <!-- Dynamically populated user tabs -->
+          </div>
+        </div>
+
+        <!-- Quick Search, Month Navigator & Project Filter -->
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          <!-- Month Navigator -->
+          <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
+            <button type="button" id="prevMonthBtn" title="Previous Month" class="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
+              <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+            </button>
+            <input 
+              type="month" 
+              id="monthPicker" 
+              class="text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-hidden cursor-pointer"
+            >
+            <button type="button" id="nextMonthBtn" title="Next Month" class="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" id="allMonthsBtn" class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200/60 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer ml-0.5" title="View all months">
+              All
+            </button>
+          </div>
+
+          <div class="relative w-full sm:w-48">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search task or project..." 
+              class="w-full pl-9 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            >
+          </div>
+
+          <select id="projectFilterSelect" class="py-2 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+            <option value="">All Projects</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Data Table Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <!-- Table Header Bar -->
+      <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-white to-slate-50">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2" id="currentViewTitle">
+            <span>All Records</span>
+          </h2>
+          <p class="text-xs text-slate-500">Spreadsheet-style daily work records</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="text-xs text-slate-500 font-medium">
+            Showing <span id="filteredCountBadge" class="font-bold text-slate-800">0</span> entries
+          </div>
+          <button id="clearFiltersBtn" class="hidden text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Responsive Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse" id="workTable">
+          <thead>
+            <tr class="bg-amber-300 text-slate-900 border-b border-amber-400/80 text-[11px] font-extrabold tracking-wider uppercase">
+              <th class="py-3 px-4 w-14 text-center border-r border-amber-400/40">SNO</th>
+              <th class="py-3 px-4 w-32 border-r border-amber-400/40">DATE</th>
+              <th class="py-3 px-4 w-36 border-r border-amber-400/40">USER</th>
+              <th class="py-3 px-6 min-w-[320px] border-r border-amber-400/40">TASKS</th>
+              <th class="py-3 px-4 w-44 border-r border-amber-400/40">WORK TIME</th>
+              <th class="py-3 px-3 w-24 text-center border-r border-amber-400/40">HOURS</th>
+              <th class="py-3 px-4 min-w-[220px] border-r border-amber-400/40">PROJECT NAME</th>
+              <th class="py-3 px-4 w-24 text-right pr-6">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="workTableBody" class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden py-16 text-center px-4">
+        <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400 mb-3">
+          <i data-lucide="inbox" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-700">No work records found</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Try selecting another user tab or click below to log work.</p>
+        <button onclick="document.getElementById('openAddTaskModalBtn').click()" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors cursor-pointer shadow-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i> Log New Work
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-slate-200/80 mt-10 text-center">
+    <p class="text-xs text-slate-500 font-medium flex items-center justify-center gap-1.5">
+      <span>Developed by</span>
+      <a 
+        href="https://srijith.vercel.app" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="inline-flex items-center gap-1 font-bold text-emerald-600 hover:text-emerald-700 hover:underline decoration-2 underline-offset-2 transition-colors bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60"
+      >
+        <span>Srijith</span>
+        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+      </a>
+    </p>
+  </footer>
+
+  <!-- MODAL: Add / Edit Task Form -->
+  <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform scale-95 transition-transform duration-200" id="taskModalContainer">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="edit-3" class="w-4 h-4" id="modalIcon"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-900" id="modalTitle">Log Daily Work</h3>
+        </div>
+        <button id="closeTaskModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <form id="taskForm" class="p-6 space-y-4">
+        <input type="hidden" id="taskId">
+
+        <!-- User Selection & Date -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">User / Member *</label>
+            <select id="taskUserSelect" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+              <!-- Users options -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Date *</label>
+            <input type="date" id="taskDate" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+          </div>
+        </div>
+
+        <!-- Project Name -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700">Project Name *</label>
+            <button type="button" id="quickAddProjectBtn" class="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-0.5 cursor-pointer">
+              <i data-lucide="plus" class="w-3 h-3"></i> Manage Projects
+            </button>
+          </div>
+          <input 
+            type="text" 
+            id="taskProject" 
+            list="projectDatalist"
+            placeholder="Select or type project name..." 
+            required 
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
+          >
+          <datalist id="projectDatalist">
+            <!-- Dynamically populated -->
+          </datalist>
+        </div>
+
+        <!-- Work Time (Start / End & Preset) -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-700">Work Timing</label>
+            <span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md" id="calcHoursBadge">8h 30m</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <span class="text-[11px] text-slate-500 font-medium">Start Time</span>
+              <input type="time" id="taskStartTime" value="10:00" class="w-full mt-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-500 font-medium">End Time</span>
+              <input type="time" id="taskEndTime" value="18:30" class="w-full mt-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            </div>
+          </div>
+
+          <!-- Quick presets -->
+          <div class="flex items-center gap-1.5 pt-1 flex-wrap">
+            <span class="text-[10px] text-slate-400 font-semibold uppercase">Presets:</span>
+            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="18:30">10 AM - 6:30 PM (8.5h)</button>
+            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="09:00" data-end="17:00">9 AM - 5 PM (8h)</button>
+            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="14:00">Half Day (4h)</button>
+          </div>
+        </div>
+
+        <!-- Task Description -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Tasks Done / Work Summary *</label>
+          <textarea 
+            id="taskDesc" 
+            rows="3" 
+            placeholder="e.g. WHATSAPP AUTOMATION & DHIGROWTH SEO CHANGES" 
+            required 
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
+          ></textarea>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <button type="button" id="cancelTaskModalBtn" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+            Save Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Manage / Add User -->
+  <div id="userModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="userModalContainer">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+            <i data-lucide="users" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">Manage Team Members</h3>
+        </div>
+        <button id="closeUserModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Add New User Form -->
+        <form id="addUserForm" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 mb-1">Member Name *</label>
+            <input 
+              type="text" 
+              id="newUserNameInput" 
+              placeholder="Member Name (e.g. Rachel Green)" 
+              required 
+              class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+            >
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Notification Email *</label>
+              <input 
+                type="email" 
+                id="newUserEmailInput" 
+                placeholder="name@example.com" 
+                required
+                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+              >
+            </div>
+            <div class="col-span-1">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">PIN (default 1234)</label>
+              <input 
+                type="password" 
+                id="newUserPinInput" 
+                placeholder="1234" 
+                maxlength="6"
+                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-center"
+              >
+            </div>
+          </div>
+          <div class="flex items-center justify-end pt-1">
+            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer">
+              Add Member
+            </button>
+          </div>
+        </form>
+
+        <!-- Current User List -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-2">Existing Members</label>
+          <div id="userListContainer" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+            <!-- User list items -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Manage / Add Projects -->
+  <div id="projectModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="projectModalContainer">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+            <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">Manage Projects</h3>
+        </div>
+        <button id="closeProjectModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Add New Project Form -->
+        <form id="addProjectForm" class="flex gap-2">
+          <input 
+            type="text" 
+            id="newProjectNameInput" 
+            placeholder="New project name (e.g. MARKETING AUTOMATION)" 
+            required 
+            class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium uppercase"
+          >
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer">
+            Add
+          </button>
+        </form>
+
+        <!-- Current Projects List -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-2">Saved Projects</label>
+          <div id="projectListContainer" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-56 overflow-y-auto">
+            <!-- Project list items -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Email Notifications & 5 PM Daily Reminders -->
+  <div id="remindersModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform scale-95 transition-transform duration-200" id="remindersModalContainer">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/60">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+            <i data-lucide="bell-ring" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Email Notifications</h3>
+            <p class="text-[11px] text-amber-700 font-semibold">Auto Reminders: Mon – Sat at 5:00 PM</p>
+          </div>
+        </div>
+        <button id="closeRemindersModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <!-- Schedule Status Banner -->
+        <div class="p-3 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-transparent border border-amber-200 rounded-xl flex items-start gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+          </div>
+          <div class="text-xs">
+            <h4 class="font-bold text-slate-900">Automated Daily Dispatch</h4>
+            <p class="text-slate-600 mt-0.5">Every <strong>Monday to Saturday at 5:00 PM (17:00)</strong>, an automated reminder is sent to all members with their logged work summary and log link.</p>
+          </div>
+        </div>
+
+        <!-- Team Member Email Addresses Form -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">Member Email Addresses</label>
+          <div class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200" id="memberEmailsList">
+            <!-- Dynamically populated per member -->
+          </div>
+        </div>
+
+        <!-- SMTP / Sender Setup -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">Sender Mail Settings (SMTP)</label>
+          <div class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <div>
+              <span class="text-[11px] font-semibold text-slate-600">Sender Email (e.g. Gmail / Company)</span>
+              <input type="email" id="smtpSenderEmail" placeholder="your-email@gmail.com" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <span class="text-[11px] font-semibold text-slate-600">App Password / API Key</span>
+                <input type="password" id="smtpPassword" placeholder="App Password" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+              </div>
+              <div>
+                <span class="text-[11px] font-semibold text-slate-600">SMTP Host</span>
+                <input type="text" id="smtpHost" value="smtp.gmail.com" placeholder="smtp.gmail.com" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dispatch Feedback Banner -->
+        <div id="reminderStatusAlert" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+          <span id="reminderStatusText"></span>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+          <button type="button" id="testSendReminderBtn" class="px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>Send Test Email Now</span>
+          </button>
+          
+          <button type="button" id="saveReminderSettingsBtn" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: User Profile & PIN Settings -->
+  <div id="userSettingsModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="userSettingsModalContainer">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="user-cog" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Profile & Security Settings</h3>
+            <p class="text-[11px] text-slate-500 font-medium" id="settingsUserRoleLabel">Manage your personal PIN and preferences</p>
+          </div>
+        </div>
+        <button id="closeUserSettingsModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Settings Form -->
+      <form id="userSettingsForm" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <!-- User Info Card -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs" id="settingsAvatarBadge">
+            S
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-900 text-sm" id="settingsUserNameDisplay">Srijith</h4>
+            <span class="text-[11px] text-emerald-600 font-semibold bg-emerald-100 px-2 py-0.5 rounded-md" id="settingsRoleBadge">Admin Member</span>
+          </div>
+        </div>
+
+        <!-- Notification Email -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Your Notification Email</label>
+          <input 
+            type="email" 
+            id="settingsUserEmailInput" 
+            placeholder="your-email@example.com" 
+            required 
+            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+          >
+        </div>
+
+        <!-- Change Password / PIN Section -->
+        <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-200/70 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-amber-950 flex items-center gap-1.5">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-amber-600"></i>
+              <span>Change Login PIN</span>
+            </label>
+            <span class="text-[10px] text-amber-800 font-medium">4 to 6 digits</span>
+          </div>
+
+          <div>
+            <span class="text-[11px] font-semibold text-slate-600">Current PIN *</span>
+            <input 
+              type="password" 
+              id="settingsCurrentPin" 
+              placeholder="Enter current PIN" 
+              maxlength="6"
+              class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+            >
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <span class="text-[11px] font-semibold text-slate-600">New PIN *</span>
+              <input 
+                type="password" 
+                id="settingsNewPin" 
+                placeholder="New 4-digit PIN" 
+                maxlength="6"
+                class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+              >
+            </div>
+            <div>
+              <span class="text-[11px] font-semibold text-slate-600">Confirm New PIN *</span>
+              <input 
+                type="password" 
+                id="settingsConfirmPin" 
+                placeholder="Confirm PIN" 
+                maxlength="6"
+                class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Avatar Color Palette -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">Profile Color Theme</label>
+          <div class="flex items-center gap-3" id="settingsColorPalette">
+            <button type="button" data-color="bg-emerald-600" class="theme-color-btn w-7 h-7 rounded-xl bg-emerald-600 cursor-pointer ring-2 ring-emerald-600/30 transition-all" title="Emerald"></button>
+            <button type="button" data-color="bg-indigo-600" class="theme-color-btn w-7 h-7 rounded-xl bg-indigo-600 cursor-pointer hover:scale-105 transition-all" title="Indigo"></button>
+            <button type="button" data-color="bg-sky-500" class="theme-color-btn w-7 h-7 rounded-xl bg-sky-500 cursor-pointer hover:scale-105 transition-all" title="Sky Blue"></button>
+            <button type="button" data-color="bg-rose-600" class="theme-color-btn w-7 h-7 rounded-xl bg-rose-600 cursor-pointer hover:scale-105 transition-all" title="Rose"></button>
+            <button type="button" data-color="bg-amber-600" class="theme-color-btn w-7 h-7 rounded-xl bg-amber-600 cursor-pointer hover:scale-105 transition-all" title="Amber"></button>
+            <button type="button" data-color="bg-purple-600" class="theme-color-btn w-7 h-7 rounded-xl bg-purple-600 cursor-pointer hover:scale-105 transition-all" title="Purple"></button>
+            <button type="button" data-color="bg-teal-600" class="theme-color-btn w-7 h-7 rounded-xl bg-teal-600 cursor-pointer hover:scale-105 transition-all" title="Teal"></button>
+          </div>
+        </div>
+
+        <!-- Feedback Alert Banner -->
+        <div id="settingsFeedbackAlert" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+          <span id="settingsFeedbackText"></span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="cancelUserSettingsBtn" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FULL SCREEN LOGIN OVERLAY -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6 transform transition-all scale-100 animate-in fade-in zoom-in-95">
+      
+      <!-- Login Header -->
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
+          <i data-lucide="lock" class="w-7 h-7"></i>
+        </div>
+        <h2 class="text-xl font-extrabold text-slate-900">Member Sign In</h2>
+        <p class="text-xs text-slate-500 font-medium">Select your name and enter your PIN to access your workspace</p>
+      </div>
+
+      <!-- Member Grid Selection -->
+      <div class="space-y-3">
+        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Member</label>
+        <div class="grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto p-1 scrollbar-thin" id="loginUserGrid">
+          <!-- Populated dynamically with member cards -->
+        </div>
+      </div>
+
+      <!-- PIN Input Form -->
+      <form id="loginForm" class="space-y-4 pt-2">
+        <input type="hidden" id="loginSelectedUser">
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700">Security PIN *</label>
+            <span class="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">Default PIN: 1234</span>
+          </div>
+          <div class="relative">
+            <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="password" 
+              id="loginPinInput" 
+              placeholder="Enter PIN..." 
+              required
+              maxlength="6"
+              class="w-full pl-9 pr-3 py-2.5 text-sm font-bold tracking-widest bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-800"
+            >
+          </div>
+        </div>
+
+        <!-- Error Message Banner -->
+        <div id="loginErrorMsg" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+          <span id="loginErrorText">Incorrect PIN. Try 1234.</span>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          id="loginSubmitBtn"
+          class="w-full py-3 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Continue to Work Log</span>
+        </button>
+      </form>
+
+      <!-- Quick Footer in Login Screen -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <button type="button" id="loginAddMemberBtn" class="text-slate-600 hover:text-emerald-600 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+          <span>Add New Member</span>
+        </button>
+        <span>Protected Workspace</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

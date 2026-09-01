@@ -1,0 +1,71 @@
+/* Custom Styles for Work Log Tracker */
+
+/* Custom Scrollbar for tabs and tables */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* User Tab Active State */
+.user-tab-btn.active {
+  background-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.user-tab-btn {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Table Hover */
+#workTable tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Login Member Card Selected State */
+.login-user-card {
+  transition: all 0.15s ease-in-out;
+}
+
+.login-user-card.selected {
+  border-color: #10b981;
+  background-color: #ecfdf5;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* Print styling for clean export to PDF */
+@media print {
+  header, #userTabsContainer, #searchInput, #projectFilterSelect, #addUserBtn, #exportCsvBtn, #openAddTaskModalBtn, .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+
+  table {
+    width: 100% !important;
+    border: 1px solid #cbd5e1;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    font-size: 10pt !important;
+  }
+}

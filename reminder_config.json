@@ -1,0 +1,13 @@
+{
+  "senderEmail": "",
+  "appPassword": "",
+  "smtpHost": "smtp.gmail.com",
+  "smtpPort": 587,
+  "enabled": true,
+  "memberEmails": {
+    "Srijith": "srijith@example.com",
+    "Sri mathi": "srimathi@example.com",
+    "Akila": "akila@example.com",
+    "Jayaraj": "jayaraj@example.com"
+  }
+}
