@@ -642,62 +642,162 @@
         </button>
       </div>
 
-      <div class="p-5 sm:p-6 space-y-4">
-        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 space-y-1">
-          <p class="font-bold flex items-center gap-1.5">
-            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
-            Schedule: Monday to Saturday at 5:00 PM
+      <div class="p-5 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        
+        <!-- Top Info Banner -->
+        <div class="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 space-y-1">
+          <p class="font-extrabold flex items-center gap-1.5 text-slate-900">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-amber-600"></i>
+            100% Free Daily Reminders (Monday to Saturday at 5:00 PM)
           </p>
-          <p class="text-slate-600 text-[11px]">
-            Every team member will automatically receive an email reminding them to log their daily tasks.
+          <p class="text-slate-600 text-[11px] leading-relaxed">
+            Choose your preferred zero-cost method to remind team members to log their daily tasks and hours.
           </p>
         </div>
 
-        <!-- Member Email List Configuration -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-2">Member Email Addresses</label>
-          <div class="space-y-2 max-h-48 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50/50" id="memberEmailsList">
-            <!-- Dynamically populated -->
+        <!-- 1. WhatsApp 1-Click Reminders (100% Free & No Passwords) -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-extrabold text-slate-900">1-Click WhatsApp Reminders</h4>
+                <p class="text-[10px] text-slate-500 font-medium">Free, instant & zero setup</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              id="broadcastWhatsAppBtn" 
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+              <span>Share App Link</span>
+            </button>
+          </div>
+
+          <!-- Team Member WhatsApp List -->
+          <div class="space-y-2 pt-1 max-h-48 overflow-y-auto" id="whatsappMemberList">
+            <!-- Populated via JS with 1-click WhatsApp buttons -->
           </div>
         </div>
 
-        <!-- SMTP Sender Credentials -->
-        <div class="space-y-2.5 pt-2 border-t border-slate-100">
-          <label class="block text-xs font-bold text-slate-700">Sender Email & Credentials (Gmail SMTP)</label>
+        <!-- 2. Google Calendar Daily 5 PM Recurring Reminder -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-extrabold text-slate-900">Google Calendar Daily Auto-Alert</h4>
+              <p class="text-[10px] text-slate-500 font-medium">Creates a recurring 5 PM notification on PC & Phone</p>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input 
-              type="email" 
-              id="smtpSenderEmail" 
-              placeholder="sender@gmail.com" 
-              class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+            <a 
+              id="googleCalendarBtn"
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="px-3 py-2 text-xs font-bold text-blue-900 bg-blue-100 hover:bg-blue-200/80 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 text-center"
             >
-            <input 
-              type="password" 
-              id="smtpPassword" 
-              placeholder="Gmail App Password" 
-              class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+              <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-blue-600"></i>
+              <span>Add to Google Calendar</span>
+            </a>
+            <button 
+              type="button" 
+              id="downloadIcsBtn" 
+              class="px-3 py-2 text-xs font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
+              <i data-lucide="download" class="w-3.5 h-3.5 text-slate-600"></i>
+              <span>Download (.ics) Calendar</span>
+            </button>
           </div>
-          <input type="hidden" id="smtpHost" value="smtp.gmail.com">
-          <p class="text-[10px] text-slate-400">
-            Use a Google App Password from your Google Account security settings.
-          </p>
         </div>
+
+        <!-- 3. Browser Push Notifications -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-extrabold text-slate-900">Desktop & Mobile Push Alerts</h4>
+                <p class="text-[10px] text-slate-500 font-medium">Alerts at 5:00 PM while browser is active</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              id="enableBrowserNotifyBtn" 
+              class="px-3 py-1.5 text-[11px] font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-purple-700"></i>
+              <span id="browserNotifyBtnText">Enable Notifications</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Optional: Automated Gmail SMTP Email Dispatch -->
+        <details class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden group">
+          <summary class="p-3.5 text-xs font-extrabold text-slate-800 flex items-center justify-between cursor-pointer hover:bg-slate-100/80 transition-colors">
+            <div class="flex items-center gap-2">
+              <i data-lucide="mail" class="w-4 h-4 text-slate-500"></i>
+              <span>Optional: Automated Gmail SMTP Dispatch</span>
+            </div>
+            <span class="text-[10px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          
+          <div class="p-4 pt-1 space-y-3 border-t border-slate-200/60 bg-white">
+            <p class="text-[11px] text-slate-500">
+              For automatic emails sent from your Gmail account every day at 5 PM using a Google App Password.
+            </p>
+
+            <!-- Member Email List -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">Member Email Addresses</label>
+              <div class="space-y-2 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50/50" id="memberEmailsList">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Credentials -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-slate-700">Gmail Credentials</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input 
+                  type="email" 
+                  id="smtpSenderEmail" 
+                  placeholder="your-email@gmail.com" 
+                  class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+                >
+                <input 
+                  type="password" 
+                  id="smtpPassword" 
+                  placeholder="16-letter App Password" 
+                  class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+                >
+              </div>
+              <input type="hidden" id="smtpHost" value="smtp.gmail.com">
+            </div>
+
+            <div class="flex items-center justify-between pt-2 flex-wrap gap-2">
+              <button type="button" id="testSendReminderBtn" class="px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i> Send Test Email Now
+              </button>
+              <button type="button" id="saveReminderSettingsBtn" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer">
+                Save SMTP Settings
+              </button>
+            </div>
+          </div>
+        </details>
 
         <!-- Status message -->
         <div id="reminderStatusAlert" class="hidden p-3 rounded-xl text-xs font-semibold">
           <span id="reminderStatusText"></span>
         </div>
 
-        <!-- Buttons -->
-        <div class="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
-          <button type="button" id="testSendReminderBtn" class="px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5">
-            <i data-lucide="send" class="w-3.5 h-3.5"></i> Send Test Email Now
-          </button>
-          <button type="button" id="saveReminderSettingsBtn" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
-            Save Settings
-          </button>
-        </div>
       </div>
     </div>
   </div>

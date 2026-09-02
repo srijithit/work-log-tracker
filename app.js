@@ -1,4 +1,4 @@
-// Work Log Tracker Application Logic with Mobile Optimization, Vercel Blob Cloud Sync, Client-side DOCX Export, Task Status & Security
+// Work Log Tracker Application Logic with Free Reminders (WhatsApp & Google Calendar), Mobile Optimization, Vercel Blob Sync, DOCX Export, Task Status & Security
 
 // Storage Keys
 const STORAGE_KEY_TASKS = 'work_tracker_tasks_v7';
@@ -21,10 +21,10 @@ const CURRENT_MONTH = getCurrentYearMonth();
 
 // Default Team Members with PINs and Emails
 const DEFAULT_USERS = [
-  { name: 'Srijith', email: 'srijith@example.com', pin: '1234', role: 'admin', color: 'bg-emerald-600' },
-  { name: 'Sri mathi', email: 'srimathi@example.com', pin: '1234', role: 'member', color: 'bg-indigo-600' },
-  { name: 'Akila', email: 'akila@example.com', pin: '1234', role: 'member', color: 'bg-sky-500' },
-  { name: 'Jayaraj', email: 'jayaraj@example.com', pin: '1234', role: 'member', color: 'bg-amber-600' }
+  { name: 'Srijith', email: 'srijith@example.com', pin: '1234', role: 'admin', color: 'bg-emerald-600', phone: '' },
+  { name: 'Sri mathi', email: 'srimathi@example.com', pin: '1234', role: 'member', color: 'bg-indigo-600', phone: '' },
+  { name: 'Akila', email: 'akila@example.com', pin: '1234', role: 'member', color: 'bg-sky-500', phone: '' },
+  { name: 'Jayaraj', email: 'jayaraj@example.com', pin: '1234', role: 'member', color: 'bg-amber-600', phone: '' }
 ];
 
 // Default Projects
@@ -100,7 +100,7 @@ let reminderConfig = {
   smtpPort: 587,
   enabled: true
 };
-let currentLoggedInUser = null; // { name, pin, role, email, color }
+let currentLoggedInUser = null; // { name, pin, role, email, color, phone }
 let selectedUser = 'ALL'; // 'ALL' or specific user name
 let selectedMonth = CURRENT_MONTH; // Auto-defaults to current month (e.g. "2026-09")
 let searchQuery = '';
@@ -112,8 +112,6 @@ let isSyncingWithCloud = false;
 
 // DOM Elements
 const currentMonthYearBadge = document.getElementById('currentMonthYearBadge');
-const cloudSyncStatusBadge = document.getElementById('cloudSyncStatusBadge');
-const cloudSyncStatusText = document.getElementById('cloudSyncStatusText');
 const refreshCloudBtn = document.getElementById('refreshCloudBtn');
 const userTabsContainer = document.getElementById('userTabsContainer');
 const workTableBody = document.getElementById('workTableBody');
@@ -207,11 +205,17 @@ const addProjectForm = document.getElementById('addProjectForm');
 const newProjectNameInput = document.getElementById('newProjectNameInput');
 const projectListContainer = document.getElementById('projectListContainer');
 
-// Email Reminders Modal Elements
+// Free & Email Reminders Modal Elements
 const remindersModal = document.getElementById('remindersModal');
 const remindersModalContainer = document.getElementById('remindersModalContainer');
 const openRemindersBtn = document.getElementById('openRemindersBtn');
 const closeRemindersModalBtn = document.getElementById('closeRemindersModalBtn');
+const whatsappMemberList = document.getElementById('whatsappMemberList');
+const broadcastWhatsAppBtn = document.getElementById('broadcastWhatsAppBtn');
+const googleCalendarBtn = document.getElementById('googleCalendarBtn');
+const downloadIcsBtn = document.getElementById('downloadIcsBtn');
+const enableBrowserNotifyBtn = document.getElementById('enableBrowserNotifyBtn');
+const browserNotifyBtnText = document.getElementById('browserNotifyBtnText');
 const memberEmailsList = document.getElementById('memberEmailsList');
 const smtpSenderEmail = document.getElementById('smtpSenderEmail');
 const smtpPassword = document.getElementById('smtpPassword');
@@ -258,6 +262,8 @@ function initApp() {
   setupEventListeners();
   checkAuthSession();
   setupClientSideReminderCheck();
+  setupGoogleCalendarLink();
+  updateBrowserNotificationButton();
   loadCloudData();
 }
 
@@ -274,7 +280,7 @@ function loadLocalData() {
       users = users.map((u, i) => {
         if (typeof u === 'string') {
           const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-sky-500', 'bg-amber-600', 'bg-purple-600'];
-          return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@example.com`, pin: '1234', role: i === 0 ? 'admin' : 'member', color: colors[i % colors.length] };
+          return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@example.com`, pin: '1234', role: i === 0 ? 'admin' : 'member', color: colors[i % colors.length], phone: '' };
         }
         if (!u.email) {
           u.email = `${u.name.toLowerCase().replace(/\s+/g, '')}@example.com`;
@@ -282,6 +288,7 @@ function loadLocalData() {
         if (u.name.toLowerCase() === 'akila' && (u.color === 'bg-rose-600' || !u.color)) {
           u.color = 'bg-sky-500';
         }
+        if (!u.phone) u.phone = '';
         return u;
       });
     } catch {
@@ -339,8 +346,6 @@ function saveData(syncCloud = true) {
 
 // Fetch shared team data from Vercel Cloud Blob Storage
 function loadCloudData() {
-  setCloudStatus('Syncing...', 'animate-spin');
-
   fetch('/api/data')
     .then(r => {
       if (!r.ok) throw new Error('Cloud storage API unavailable');
@@ -392,21 +397,18 @@ function loadCloudData() {
         saveLocalData();
         renderAll();
         renderLoginUserGrid();
-        setCloudStatus(res.source === 'vercel-blob' ? 'Vercel Blob Synced' : 'Cloud Synced', 'text-emerald-600');
       } else {
         syncToCloud();
       }
     })
     .catch(err => {
       console.warn('Cloud sync note:', err.message);
-      setCloudStatus('Local Storage', 'text-slate-500');
     });
 }
 
 // Push local state to Vercel Blob / Cloud Storage
 function syncToCloud() {
   isSyncingWithCloud = true;
-  setCloudStatus('Saving to Cloud...', 'animate-pulse text-amber-600');
 
   const payload = {
     users,
@@ -424,26 +426,10 @@ function syncToCloud() {
     .then(r => r.json())
     .then(res => {
       isSyncingWithCloud = false;
-      if (res && res.success) {
-        setCloudStatus(res.storage === 'vercel-blob' ? 'Vercel Blob Synced' : 'Cloud Synced', 'text-emerald-600');
-      } else {
-        setCloudStatus('Local Storage', 'text-slate-500');
-      }
     })
     .catch(() => {
       isSyncingWithCloud = false;
-      setCloudStatus('Local Storage', 'text-slate-500');
     });
-}
-
-// Update Cloud Sync Status Indicator
-function setCloudStatus(text, extraClass = '') {
-  if (cloudSyncStatusText) {
-    cloudSyncStatusText.textContent = text;
-  }
-  if (cloudSyncStatusBadge) {
-    cloudSyncStatusBadge.title = `Data Storage: ${text}`;
-  }
 }
 
 // Check Active Authentication Session
@@ -663,6 +649,7 @@ function renderAll() {
   renderUserList();
   renderProjectList();
   renderMemberEmailsList();
+  renderWhatsAppMemberList();
 }
 
 // Update View Mode Display (Cards vs Table)
@@ -1136,6 +1123,137 @@ function renderMemberEmailsList() {
   });
 }
 
+// Render 1-Click WhatsApp Member List in Reminders Modal
+function renderWhatsAppMemberList() {
+  if (!whatsappMemberList) return;
+  whatsappMemberList.innerHTML = '';
+
+  users.forEach((user) => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 p-2 bg-white rounded-xl border border-slate-200 shadow-2xs';
+    row.innerHTML = `
+      <div class="flex items-center gap-2 overflow-hidden">
+        <div class="w-7 h-7 rounded-lg ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+          ${user.name.charAt(0).toUpperCase()}
+        </div>
+        <div class="truncate">
+          <span class="text-xs font-bold text-slate-800 block truncate">${escapeHtml(user.name)}</span>
+          <span class="text-[10px] text-slate-400 font-medium block truncate">${escapeHtml(user.email || 'No email')}</span>
+        </div>
+      </div>
+      <button 
+        type="button"
+        onclick="sendWhatsAppReminder('${escapeHtml(user.name)}', '${escapeHtml(user.phone || '')}')" 
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-2xs transition-all cursor-pointer shrink-0 active:scale-95"
+        title="Send 1-Click WhatsApp Reminder to ${escapeHtml(user.name)}"
+      >
+        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+        <span>WhatsApp</span>
+      </button>
+    `;
+    whatsappMemberList.appendChild(row);
+  });
+
+  lucide.createIcons();
+}
+
+// Send 1-Click WhatsApp Reminder to Individual Member
+window.sendWhatsAppReminder = function(userName, phone) {
+  const appUrl = window.location.href.split('#')[0];
+  const msg = `Hi ${userName}! 🔔 Friendly reminder to log your daily work tasks and hours in Work Log Tracker for today:\n${appUrl}`;
+  const encoded = encodeURIComponent(msg);
+  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+  const url = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  window.open(url, '_blank');
+};
+
+// Broadcast WhatsApp Reminder to Team / Group
+function broadcastWhatsAppReminder() {
+  const appUrl = window.location.href.split('#')[0];
+  const msg = `🔔 Team Work Log Reminder (5:00 PM):\nPlease remember to log your daily development tasks and work hours for today in Work Log Tracker:\n${appUrl}`;
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+// Configure Google Calendar 5 PM Daily Link
+function setupGoogleCalendarLink() {
+  if (!googleCalendarBtn) return;
+  const title = encodeURIComponent('🔔 Log Daily Tasks (Work Log Tracker)');
+  const details = encodeURIComponent(`Daily reminder to log work tasks and hours in Work Log Tracker: ${window.location.origin}`);
+  const location = encodeURIComponent('Work Log Tracker');
+  // Mon-Sat 5:00 PM to 5:15 PM recurring rule
+  const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=20260901T170000/20260901T171500&recur=RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA`;
+  googleCalendarBtn.href = gCalUrl;
+}
+
+// Download .ics Calendar File for Apple / Outlook / Android Calendar
+function downloadIcsCalendarFile() {
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Work Log Tracker//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'SUMMARY:🔔 Log Daily Work Tasks & Hours (Work Log Tracker)',
+    `DESCRIPTION:Friendly reminder to log today's development work in Work Log Tracker: ${window.location.origin}`,
+    'STATUS:CONFIRMED',
+    'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA',
+    'DTSTART;TZID=Asia/Kolkata:20260901T170000',
+    'DTEND;TZID=Asia/Kolkata:20260901T171500',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT0M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Work Log Reminder (5:00 PM)',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  if (window.saveAs) {
+    window.saveAs(blob, 'Work_Log_5PM_Daily_Reminder.ics');
+  } else {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Work_Log_5PM_Daily_Reminder.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+}
+
+// Update Browser Notification Button State
+function updateBrowserNotificationButton() {
+  if (!enableBrowserNotifyBtn || !browserNotifyBtnText) return;
+  if (!('Notification' in window)) {
+    browserNotifyBtnText.textContent = 'Not Supported';
+    enableBrowserNotifyBtn.disabled = true;
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    browserNotifyBtnText.textContent = '✅ Active (5:00 PM)';
+    enableBrowserNotifyBtn.className = 'px-3 py-1.5 text-[11px] font-bold text-emerald-900 bg-emerald-100 rounded-xl cursor-default flex items-center gap-1';
+  } else if (Notification.permission === 'denied') {
+    browserNotifyBtnText.textContent = '❌ Blocked in Browser';
+    enableBrowserNotifyBtn.className = 'px-3 py-1.5 text-[11px] font-bold text-rose-900 bg-rose-100 rounded-xl cursor-default flex items-center gap-1';
+  } else {
+    browserNotifyBtnText.textContent = 'Enable Push Alerts';
+    enableBrowserNotifyBtn.className = 'px-3 py-1.5 text-[11px] font-bold text-purple-900 bg-purple-100 hover:bg-purple-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1';
+  }
+}
+
+// Request Browser Push Notification Permission
+function requestBrowserNotificationPermission() {
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(() => {
+    updateBrowserNotificationButton();
+  });
+}
+
 // Open Task Modal (Add or Edit)
 function openTaskModal(taskId = null) {
   if (taskId) {
@@ -1243,6 +1361,10 @@ function closeProjectModal() {
 // Open Reminders Modal
 function openRemindersModal() {
   renderMemberEmailsList();
+  renderWhatsAppMemberList();
+  setupGoogleCalendarLink();
+  updateBrowserNotificationButton();
+
   if (smtpSenderEmail) smtpSenderEmail.value = reminderConfig.senderEmail || '';
   if (smtpPassword) smtpPassword.value = reminderConfig.appPassword || '';
   if (smtpHost) smtpHost.value = reminderConfig.smtpHost || 'smtp.gmail.com';
@@ -1418,7 +1540,7 @@ function showSettingsFeedback(msg, isSuccess) {
 // Client-side 5 PM In-Browser Notification Check (Monday-Saturday)
 function setupClientSideReminderCheck() {
   if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+    Notification.requestPermission().then(() => updateBrowserNotificationButton());
   }
 
   setInterval(() => {
@@ -1431,7 +1553,7 @@ function setupClientSideReminderCheck() {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('Work Log Reminder (5:00 PM)', {
           body: 'Hi, please remember to log your tasks and work hours for today in Work Log Tracker.',
-          icon: '/favicon.ico'
+          icon: '/favicon.png'
         });
       }
     }
@@ -1616,7 +1738,8 @@ addUserForm.addEventListener('submit', (e) => {
       email,
       pin,
       role: 'member',
-      color: colors[users.length % colors.length]
+      color: colors[users.length % colors.length],
+      phone: ''
     };
     users.push(newUser);
     saveData(true);
@@ -2202,12 +2325,21 @@ function setupEventListeners() {
     });
   }
 
-  // Reminders Modal
+  // Reminders Modal Events
   if (openRemindersBtn) {
     openRemindersBtn.addEventListener('click', openRemindersModal);
   }
   if (closeRemindersModalBtn) {
     closeRemindersModalBtn.addEventListener('click', closeRemindersModal);
+  }
+  if (broadcastWhatsAppBtn) {
+    broadcastWhatsAppBtn.addEventListener('click', broadcastWhatsAppReminder);
+  }
+  if (downloadIcsBtn) {
+    downloadIcsBtn.addEventListener('click', downloadIcsCalendarFile);
+  }
+  if (enableBrowserNotifyBtn) {
+    enableBrowserNotifyBtn.addEventListener('click', requestBrowserNotificationPermission);
   }
   if (saveReminderSettingsBtn) {
     saveReminderSettingsBtn.addEventListener('click', saveReminderSettings);
