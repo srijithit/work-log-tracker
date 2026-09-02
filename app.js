@@ -682,24 +682,29 @@ function setViewMode(mode) {
   updateViewModeDisplay();
 }
 
-// Render User Filter Tabs
+// Render User Filter Tabs (Strict Privacy: Regular users only see their own tab; Admin can view team)
 function renderUserTabs() {
   userTabsContainer.innerHTML = '';
 
   const currentMonthTasks = tasks.filter(t => selectedMonth === 'ALL' || (t.date && t.date.startsWith(selectedMonth)));
+  const isAdmin = currentLoggedInUser && currentLoggedInUser.role === 'admin';
 
-  // If selectedUser is 'ALL' or invalid, default to logged in user or first member
-  if (selectedUser === 'ALL' || !users.some(u => u.name === selectedUser)) {
+  // For non-admin members, strictly lock selectedUser to their own name
+  if (!isAdmin && currentLoggedInUser) {
+    selectedUser = currentLoggedInUser.name;
+  } else if (selectedUser === 'ALL' || !users.some(u => u.name === selectedUser)) {
     selectedUser = currentLoggedInUser ? currentLoggedInUser.name : (users[0] ? users[0].name : '');
   }
 
-  // Individual user tabs only (All button hidden)
-  users.forEach(user => {
+  // Non-admin members only see their own tab; Admin sees all team member tabs
+  const visibleUsers = isAdmin ? users : (currentLoggedInUser ? [currentLoggedInUser] : users);
+
+  visibleUsers.forEach(user => {
     const userTaskCount = currentMonthTasks.filter(t => t.user === user.name).length;
     const isCurrentUser = currentLoggedInUser && currentLoggedInUser.name === user.name;
     const isSelected = selectedUser === user.name;
     const btn = document.createElement('button');
-    btn.className = `user-tab-btn shrink-0 px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center gap-1.5 ${
+    btn.className = `user-tab-btn shrink-0 px-3.5 py-1.5 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center gap-1.5 ${
       isSelected ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
     }`;
     btn.innerHTML = `
@@ -718,7 +723,10 @@ function renderUserTabs() {
 // Render User options in Task Modal select
 function renderUserSelectOptions() {
   taskUserSelect.innerHTML = '';
-  users.forEach(user => {
+  const isAdmin = currentLoggedInUser && currentLoggedInUser.role === 'admin';
+  const selectableUsers = isAdmin ? users : (currentLoggedInUser ? [currentLoggedInUser] : users);
+
+  selectableUsers.forEach(user => {
     const opt = document.createElement('option');
     opt.value = user.name;
     opt.textContent = `${user.name} ${currentLoggedInUser && currentLoggedInUser.name === user.name ? '(You)' : ''}`;
@@ -752,11 +760,14 @@ function renderProjectOptions() {
   }
 }
 
-// Get filtered tasks
+// Get filtered tasks (Strict privacy: Regular users ONLY see their own logs)
 function getFilteredTasks() {
+  const isAdmin = currentLoggedInUser && currentLoggedInUser.role === 'admin';
+  const effectiveUser = isAdmin ? selectedUser : (currentLoggedInUser ? currentLoggedInUser.name : selectedUser);
+
   return tasks.filter(task => {
     const matchesMonth = selectedMonth === 'ALL' || (task.date && task.date.startsWith(selectedMonth));
-    const matchesUser = selectedUser === 'ALL' || task.user === selectedUser;
+    const matchesUser = effectiveUser === 'ALL' ? true : task.user === effectiveUser;
     const matchesSearch = !searchQuery || 
       task.tasks.toLowerCase().includes(searchQuery.toLowerCase()) || 
       task.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1003,8 +1014,10 @@ function renderTable() {
 
 // Render Stats Cards with Completed vs In Progress breakdown
 function renderStats() {
+  const isAdmin = currentLoggedInUser && currentLoggedInUser.role === 'admin';
+  const effectiveUser = isAdmin ? selectedUser : (currentLoggedInUser ? currentLoggedInUser.name : selectedUser);
   const currentMonthTasks = tasks.filter(t => selectedMonth === 'ALL' || (t.date && t.date.startsWith(selectedMonth)));
-  const currentTasks = selectedUser === 'ALL' ? currentMonthTasks : currentMonthTasks.filter(t => t.user === selectedUser);
+  const currentTasks = effectiveUser === 'ALL' ? currentMonthTasks : currentMonthTasks.filter(t => t.user === effectiveUser);
   
   statTotalEntries.textContent = currentTasks.length;
 
