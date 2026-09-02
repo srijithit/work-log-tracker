@@ -1079,13 +1079,6 @@ function renderProjectList() {
           <span class="text-[10px] text-slate-400">${usageCount} ${usageCount === 1 ? 'task' : 'tasks'} logged</span>
         </div>
       </div>
-      <button 
-        onclick="deleteProject('${escapeHtml(proj)}')" 
-        class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
-        title="Remove Project"
-      >
-        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-      </button>
     `;
     projectListContainer.appendChild(item);
   });
