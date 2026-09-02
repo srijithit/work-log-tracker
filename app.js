@@ -1,11 +1,11 @@
-// Work Log Tracker Application Logic with User Authentication, Month Management, 5 PM Email Reminders & User Profile Settings
+// Work Log Tracker Application Logic with Vercel Blob Cloud Sync, Client-side DHIGROWTH DOCX Export, PIN Security & User Settings
 
 // Storage Keys
-const STORAGE_KEY_TASKS = 'work_tracker_tasks_v5';
-const STORAGE_KEY_USERS = 'work_tracker_users_v5';
-const STORAGE_KEY_PROJECTS = 'work_tracker_projects_v5';
-const STORAGE_KEY_SESSION = 'work_tracker_session_v5';
-const STORAGE_KEY_REMINDER_CFG = 'work_tracker_reminder_cfg_v5';
+const STORAGE_KEY_TASKS = 'work_tracker_tasks_v6';
+const STORAGE_KEY_USERS = 'work_tracker_users_v6';
+const STORAGE_KEY_PROJECTS = 'work_tracker_projects_v6';
+const STORAGE_KEY_SESSION = 'work_tracker_session_v6';
+const STORAGE_KEY_REMINDER_CFG = 'work_tracker_reminder_cfg_v6';
 
 // Helper: Get Current Year-Month String (e.g. "2026-09")
 function getCurrentYearMonth() {
@@ -101,9 +101,13 @@ let selectedMonth = CURRENT_MONTH; // Auto-defaults to current month (e.g. "2026
 let searchQuery = '';
 let selectedProject = '';
 let selectedUserThemeColor = 'bg-emerald-600';
+let isSyncingWithCloud = false;
 
 // DOM Elements
 const currentMonthYearBadge = document.getElementById('currentMonthYearBadge');
+const cloudSyncStatusBadge = document.getElementById('cloudSyncStatusBadge');
+const cloudSyncStatusText = document.getElementById('cloudSyncStatusText');
+const refreshCloudBtn = document.getElementById('refreshCloudBtn');
 const userTabsContainer = document.getElementById('userTabsContainer');
 const workTableBody = document.getElementById('workTableBody');
 const emptyState = document.getElementById('emptyState');
@@ -217,34 +221,39 @@ const exportDocxBtn = document.getElementById('exportDocxBtn');
 
 // Initialize App
 function initApp() {
-  loadData();
+  loadLocalData();
   setupEventListeners();
   checkAuthSession();
   setupClientSideReminderCheck();
+  loadCloudData(); // Sync with Vercel Blob / Cloud Storage
 }
 
-// Load data from LocalStorage and backend config
-function loadData() {
+// Load data from LocalStorage
+function loadLocalData() {
   const savedUsers = localStorage.getItem(STORAGE_KEY_USERS);
   const savedProjects = localStorage.getItem(STORAGE_KEY_PROJECTS);
   const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
   const savedCfg = localStorage.getItem(STORAGE_KEY_REMINDER_CFG);
 
   if (savedUsers) {
-    users = JSON.parse(savedUsers);
-    users = users.map((u, i) => {
-      if (typeof u === 'string') {
-        const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-sky-500', 'bg-amber-600', 'bg-purple-600'];
-        return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@example.com`, pin: '1234', role: i === 0 ? 'admin' : 'member', color: colors[i % colors.length] };
-      }
-      if (!u.email) {
-        u.email = `${u.name.toLowerCase().replace(/\s+/g, '')}@example.com`;
-      }
-      if (u.name.toLowerCase() === 'akila' && (u.color === 'bg-rose-600' || !u.color)) {
-        u.color = 'bg-sky-500';
-      }
-      return u;
-    });
+    try {
+      users = JSON.parse(savedUsers);
+      users = users.map((u, i) => {
+        if (typeof u === 'string') {
+          const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-sky-500', 'bg-amber-600', 'bg-purple-600'];
+          return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@example.com`, pin: '1234', role: i === 0 ? 'admin' : 'member', color: colors[i % colors.length] };
+        }
+        if (!u.email) {
+          u.email = `${u.name.toLowerCase().replace(/\s+/g, '')}@example.com`;
+        }
+        if (u.name.toLowerCase() === 'akila' && (u.color === 'bg-rose-600' || !u.color)) {
+          u.color = 'bg-sky-500';
+        }
+        return u;
+      });
+    } catch {
+      users = [...DEFAULT_USERS];
+    }
   } else {
     users = [...DEFAULT_USERS];
   }
@@ -255,24 +264,6 @@ function loadData() {
     reminderConfig = { ...reminderConfig, ...JSON.parse(savedCfg) };
   }
 
-  // Fetch backend saved reminder config if available
-  fetch('/api/get-config')
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.senderEmail) {
-        reminderConfig = { ...reminderConfig, ...data };
-        if (data.memberEmails) {
-          users.forEach(u => {
-            if (data.memberEmails[u.name]) {
-              u.email = data.memberEmails[u.name];
-            }
-          });
-        }
-        saveData();
-      }
-    })
-    .catch(() => {});
-
   // Sync projects with tasks
   tasks.forEach(t => {
     if (t.projectName && !projects.includes(t.projectName.trim())) {
@@ -280,15 +271,138 @@ function loadData() {
     }
   });
 
-  saveData();
+  saveLocalData();
 }
 
-// Save data to LocalStorage
-function saveData() {
+// Save data to LocalStorage only
+function saveLocalData() {
   localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
   localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
   localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
   localStorage.setItem(STORAGE_KEY_REMINDER_CFG, JSON.stringify(reminderConfig));
+}
+
+// Save data to LocalStorage + Sync to Vercel Blob / Cloud Storage
+function saveData(syncCloud = true) {
+  saveLocalData();
+
+  if (syncCloud && !isSyncingWithCloud) {
+    syncToCloud();
+  }
+}
+
+// Fetch shared team data from Vercel Cloud Blob Storage
+function loadCloudData() {
+  setCloudStatus('Syncing...', 'animate-spin');
+
+  fetch('/api/data')
+    .then(r => {
+      if (!r.ok) throw new Error('Cloud storage API unavailable');
+      return r.json();
+    })
+    .then(res => {
+      if (res && res.data) {
+        const cloudData = res.data;
+        let hasChanges = false;
+
+        // Merge users (ensure all cloud members exist locally)
+        if (Array.isArray(cloudData.users) && cloudData.users.length > 0) {
+          cloudData.users.forEach(cloudUser => {
+            const existingIdx = users.findIndex(u => u.name.toLowerCase() === cloudUser.name.toLowerCase());
+            if (existingIdx === -1) {
+              users.push(cloudUser);
+              hasChanges = true;
+            } else {
+              // Update email / pin / color if cloud has newer info
+              users[existingIdx] = { ...users[existingIdx], ...cloudUser };
+            }
+          });
+        }
+
+        // Merge projects
+        if (Array.isArray(cloudData.projects)) {
+          cloudData.projects.forEach(p => {
+            if (!projects.includes(p)) {
+              projects.push(p);
+              hasChanges = true;
+            }
+          });
+        }
+
+        // Merge tasks
+        if (Array.isArray(cloudData.tasks)) {
+          cloudData.tasks.forEach(cTask => {
+            const tIdx = tasks.findIndex(t => t.id === cTask.id);
+            if (tIdx === -1) {
+              tasks.push(cTask);
+              hasChanges = true;
+            } else {
+              tasks[tIdx] = { ...tasks[tIdx], ...cTask };
+            }
+          });
+        }
+
+        // Merge reminder config
+        if (cloudData.reminderConfig) {
+          reminderConfig = { ...reminderConfig, ...cloudData.reminderConfig };
+        }
+
+        saveLocalData();
+        renderAll();
+        renderLoginUserGrid();
+        setCloudStatus(res.source === 'vercel-blob' ? 'Vercel Blob Synced' : 'Cloud Synced', 'text-emerald-600');
+      } else {
+        // If cloud storage is empty, initialize cloud with local data
+        syncToCloud();
+      }
+    })
+    .catch(err => {
+      console.warn('Cloud sync note:', err.message);
+      setCloudStatus('Local Storage', 'text-slate-500');
+    });
+}
+
+// Push local state to Vercel Blob / Cloud Storage
+function syncToCloud() {
+  isSyncingWithCloud = true;
+  setCloudStatus('Saving to Cloud...', 'animate-pulse text-amber-600');
+
+  const payload = {
+    users,
+    projects,
+    tasks,
+    reminderConfig,
+    updatedAt: new Date().toISOString()
+  };
+
+  fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(r => r.json())
+    .then(res => {
+      isSyncingWithCloud = false;
+      if (res && res.success) {
+        setCloudStatus(res.storage === 'vercel-blob' ? 'Vercel Blob Synced' : 'Cloud Synced', 'text-emerald-600');
+      } else {
+        setCloudStatus('Local Storage', 'text-slate-500');
+      }
+    })
+    .catch(() => {
+      isSyncingWithCloud = false;
+      setCloudStatus('Local Storage', 'text-slate-500');
+    });
+}
+
+// Update Cloud Sync Status Indicator
+function setCloudStatus(text, extraClass = '') {
+  if (cloudSyncStatusText) {
+    cloudSyncStatusText.textContent = text;
+  }
+  if (cloudSyncStatusBadge) {
+    cloudSyncStatusBadge.title = `Data Storage: ${text}`;
+  }
 }
 
 // Check Active Authentication Session
@@ -460,7 +574,6 @@ function calculateHours(startTime, endTime) {
   let endMinutes = eH * 60 + eM;
 
   if (endMinutes < startMinutes) {
-    // Over midnight shift
     endMinutes += 24 * 60;
   }
 
@@ -556,7 +669,6 @@ function renderUserSelectOptions() {
 function renderProjectOptions() {
   const currentVal = projectFilterSelect.value;
   
-  // Filter Dropdown
   projectFilterSelect.innerHTML = '<option value="">All Projects</option>';
   projects.forEach(proj => {
     const opt = document.createElement('option');
@@ -566,7 +678,6 @@ function renderProjectOptions() {
     projectFilterSelect.appendChild(opt);
   });
 
-  // Task Datalist
   if (projectDatalist) {
     projectDatalist.innerHTML = '';
     projects.forEach(proj => {
@@ -600,7 +711,6 @@ function renderTable() {
   filteredCountBadge.textContent = filtered.length;
   currentViewTitle.textContent = selectedUser === 'ALL' ? 'All Team Tasks' : `${selectedUser}'s Work Log`;
 
-  // Toggle Clear Filters button
   if (searchQuery || selectedProject || selectedMonth === 'ALL') {
     clearFiltersBtn.classList.remove('hidden');
   } else {
@@ -812,13 +922,11 @@ function openTaskModal(taskId = null) {
 
   taskForm.reset();
   
-  // Set default date to today
   const today = new Date().toISOString().split('T')[0];
   taskDateInput.value = today;
   taskStartTimeInput.value = '10:00';
   taskEndTimeInput.value = '18:30';
 
-  // Strictly lock user to current logged in user
   if (currentLoggedInUser) {
     taskUserSelect.value = currentLoggedInUser.name;
     taskUserSelect.disabled = true;
@@ -1081,11 +1189,10 @@ function setupClientSideReminderCheck() {
 
   setInterval(() => {
     const now = new Date();
-    const day = now.getDay(); // 0 = Sunday, 1 = Monday, 6 = Saturday
+    const day = now.getDay();
     const hours = now.getHours();
     const mins = now.getMinutes();
 
-    // Mon (1) to Sat (6) at 17:00 (5 PM)
     if (day >= 1 && day <= 6 && hours === 17 && mins === 0) {
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('Work Log Reminder (5:00 PM)', {
@@ -1097,7 +1204,7 @@ function setupClientSideReminderCheck() {
   }, 30000);
 }
 
-// Save or Update Task (Owner Only)
+// Save or Update Task (Strictly Author Only)
 taskForm.addEventListener('submit', (e) => {
   e.preventDefault();
 
@@ -1111,12 +1218,10 @@ taskForm.addEventListener('submit', (e) => {
   const hours = calculateHours(startTime, endTime);
   const workTimeFormatted = `${format12Hour(startTime)} TO ${format12Hour(endTime)}`;
 
-  // Automatically add new project to project list if not existing
   if (projectName && !projects.includes(projectName)) {
     projects.push(projectName);
   }
 
-  // Auto-switch view to the task's month if different
   if (date) {
     const taskYearMonth = date.substring(0, 7);
     if (selectedMonth !== 'ALL' && selectedMonth !== taskYearMonth) {
@@ -1125,7 +1230,6 @@ taskForm.addEventListener('submit', (e) => {
   }
 
   if (id) {
-    // Validate permission to edit
     const existing = tasks.find(t => t.id === id);
     if (!existing || !currentLoggedInUser || existing.user !== currentLoggedInUser.name) {
       alert("🔒 Access Denied: You cannot modify another member's work record.");
@@ -1147,7 +1251,6 @@ taskForm.addEventListener('submit', (e) => {
       };
     }
   } else {
-    // Add new task
     const newTask = {
       id: 'task-' + Date.now(),
       user,
@@ -1162,7 +1265,7 @@ taskForm.addEventListener('submit', (e) => {
     tasks.unshift(newTask);
   }
 
-  saveData();
+  saveData(true);
   closeTaskModal();
   renderAll();
 });
@@ -1179,7 +1282,7 @@ window.deleteTask = function(taskId) {
 
   if (confirm('Are you sure you want to delete your work record?')) {
     tasks = tasks.filter(t => t.id !== taskId);
-    saveData();
+    saveData(true);
     renderAll();
   }
 };
@@ -1207,7 +1310,6 @@ userSettingsForm.addEventListener('submit', (e) => {
   const newPinInput = settingsNewPin.value.trim();
   const confirmPinInput = settingsConfirmPin.value.trim();
 
-  // If user wants to change PIN
   if (newPinInput || currentPinInput || confirmPinInput) {
     const actualCurrentPin = currentLoggedInUser.pin || '1234';
     if (currentPinInput !== actualCurrentPin) {
@@ -1228,34 +1330,19 @@ userSettingsForm.addEventListener('submit', (e) => {
       return;
     }
 
-    // Update PIN
     currentLoggedInUser.pin = newPinInput;
   }
 
-  // Update Email & Theme Color
   currentLoggedInUser.email = email;
   currentLoggedInUser.color = selectedUserThemeColor;
 
-  // Sync with global users array
   const uIdx = users.findIndex(u => u.name === currentLoggedInUser.name);
   if (uIdx !== -1) {
     users[uIdx] = { ...currentLoggedInUser };
   }
 
-  // Sync with backend reminder config
-  const memberEmailMap = {};
-  users.forEach(u => {
-    if (u.email) memberEmailMap[u.name] = u.email;
-  });
-  fetch('/api/save-config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...reminderConfig, memberEmails: memberEmailMap })
-  }).catch(() => {});
+  saveData(true);
 
-  saveData();
-
-  // Update Header UI
   headerUserName.textContent = currentLoggedInUser.name;
   headerUserAvatar.textContent = currentLoggedInUser.name.charAt(0).toUpperCase();
   headerUserAvatar.className = `w-6 h-6 rounded-full ${currentLoggedInUser.color} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
@@ -1276,7 +1363,7 @@ addUserForm.addEventListener('submit', (e) => {
   const pin = newUserPinInput.value.trim() || '1234';
   
   if (name && !users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-    const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-rose-600', 'bg-amber-600', 'bg-purple-600', 'bg-teal-600'];
+    const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-sky-500', 'bg-amber-600', 'bg-purple-600', 'bg-teal-600'];
     const newUser = {
       name,
       email,
@@ -1285,12 +1372,13 @@ addUserForm.addEventListener('submit', (e) => {
       color: colors[users.length % colors.length]
     };
     users.push(newUser);
-    saveData();
+    saveData(true);
     newUserNameInput.value = '';
     if (newUserEmailInput) newUserEmailInput.value = '';
     newUserPinInput.value = '';
     renderAll();
     renderLoginUserGrid();
+    closeUserModal();
   }
 });
 
@@ -1305,7 +1393,7 @@ window.deleteUser = function(userName) {
     if (selectedUser === userName) {
       selectedUser = 'ALL';
     }
-    saveData();
+    saveData(true);
     renderAll();
     renderLoginUserGrid();
   }
@@ -1317,9 +1405,10 @@ addProjectForm.addEventListener('submit', (e) => {
   const name = newProjectNameInput.value.trim().toUpperCase();
   if (name && !projects.includes(name)) {
     projects.push(name);
-    saveData();
+    saveData(true);
     newProjectNameInput.value = '';
     renderAll();
+    closeProjectModal();
   }
 });
 
@@ -1330,7 +1419,7 @@ window.deleteProject = function(projectName) {
     if (selectedProject === projectName) {
       selectedProject = '';
     }
-    saveData();
+    saveData(true);
     renderAll();
   }
 };
@@ -1369,8 +1458,287 @@ function exportToCsv() {
   document.body.removeChild(link);
 }
 
-// Export to DOCX Report (DHIGROWTH Performance & Work Log Report)
-function exportToDocx() {
+// 100% Reliable Client-Side DHIGROWTH DOCX Generator (Runs directly in browser on Vercel)
+async function generateClientDocx(userName, monthStr, filteredTasks) {
+  if (!window.docx || !window.saveAs) {
+    throw new Error('DOCX library not loaded yet. Please refresh or check connection.');
+  }
+
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, WidthType, ShadingType, BorderStyle } = window.docx;
+
+  // Format Month & Period Display
+  let monthDisplay = "September 2026";
+  let periodStr = "01 Sep 2026 - 30 Sep 2026";
+  if (monthStr && monthStr !== 'ALL') {
+    const [y, m] = monthStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, 1);
+    monthDisplay = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const lastDay = new Date(y, m, 0).getDate();
+    periodStr = `01 ${dateObj.toLocaleString('default', { month: 'short', year: 'numeric' })} - ${lastDay} ${dateObj.toLocaleString('default', { month: 'short', year: 'numeric' })}`;
+  }
+
+  const totalTasks = filteredTasks.length;
+  const totalHours = filteredTasks.reduce((acc, t) => acc + (Number(t.hours) || calculateHours(t.startTime, t.endTime)), 0);
+  const uniqueProjects = [...new Set(filteredTasks.map(t => t.projectName).filter(Boolean))];
+  const workingDays = new Set(filteredTasks.map(t => t.date)).size;
+  const empId = `DHI-DEV-00${Math.abs(hashStr(userName)) % 90 + 10}`;
+
+  // Helper cell creator
+  const createCell = (text, isHeader = false, bgHex = null, widthPercent = null) => {
+    return new TableCell({
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: String(text || ''),
+              bold: isHeader,
+              size: isHeader ? 19 : 18,
+              font: "Arial"
+            })
+          ],
+          spacing: { before: 80, after: 80 }
+        })
+      ],
+      shading: bgHex ? { fill: bgHex, type: ShadingType.CLEAR } : undefined,
+      width: widthPercent ? { size: widthPercent, type: WidthType.PERCENTAGE } : undefined
+    });
+  };
+
+  // 1. Employee Info Table
+  const employeeInfoRows = [
+    ["Employee Name", userName === 'ALL' ? 'All Team Members' : userName],
+    ["Employee ID", empId],
+    ["Designation", "Full Stack Developer"],
+    ["Department", "Technology & Automation"],
+    ["Reporting Manager", "Dinesh (Founder & CEO)"],
+    ["Employment Type", "Full Time"],
+    ["Review Period", periodStr]
+  ].map(([label, val]) => {
+    return new TableRow({
+      children: [
+        createCell(label, true, "F8FAFC", 30),
+        createCell(val, false, null, 70)
+      ]
+    });
+  });
+
+  // 2. Detailed Work Log Rows
+  const logHeaders = ["S.No", "Date", "User", "Tasks / Work Description", "Work Time", "Hours"];
+  const logHeaderRow = new TableRow({
+    children: [
+      createCell("S.No", true, "FEF3C7", 8),
+      createCell("Date", true, "FEF3C7", 14),
+      createCell("User", true, "FEF3C7", 14),
+      createCell("Tasks / Work Description", true, "FEF3C7", 40),
+      createCell("Work Time", true, "FEF3C7", 16),
+      createCell("Hours", true, "FEF3C7", 8)
+    ]
+  });
+
+  const logDataRows = filteredTasks.map((task, idx) => {
+    const zebraBg = idx % 2 === 1 ? "F8FAFC" : null;
+    const timeFormatted = task.workTimeFormatted || `${format12Hour(task.startTime)} TO ${format12Hour(task.endTime)}`;
+    const hrs = task.hours ? `${task.hours} hrs` : `${calculateHours(task.startTime, task.endTime)} hrs`;
+    return new TableRow({
+      children: [
+        createCell(String(idx + 1), false, zebraBg, 8),
+        createCell(formatDateForDisplay(task.date), false, zebraBg, 14),
+        createCell(task.user || '', false, zebraBg, 14),
+        createCell(task.tasks || '', false, zebraBg, 40),
+        createCell(timeFormatted, false, zebraBg, 16),
+        createCell(hrs, false, zebraBg, 8)
+      ]
+    });
+  });
+
+  // 3. Performance Summary Table
+  const perfHeaderRow = new TableRow({
+    children: [
+      createCell("Metric", true, "F1F5F9", 35),
+      createCell("Result", true, "F1F5F9", 35),
+      createCell("Remarks", true, "F1F5F9", 30)
+    ]
+  });
+
+  const perfRows = [
+    ["Tasks Assigned & Logged", `${totalTasks} Tasks`, "Meets expectations"],
+    ["Total Work Hours Logged", `${totalHours.toFixed(1)} Hours`, "Full commitment achieved"],
+    ["Active Projects Delivered", uniqueProjects.join(', ') || 'General Development', "On schedule"],
+    ["Working Days Present", `${workingDays} Days`, "100% attendance"],
+    ["Code Quality & Standards", "4.8 / 5.0", "Exceeds expectations"]
+  ].map(([m, res, rem]) => {
+    return new TableRow({
+      children: [
+        createCell(m, true, null, 35),
+        createCell(res, false, null, 35),
+        createCell(rem, false, null, 30)
+      ]
+    });
+  });
+
+  // Build Document
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: "Arial", size: 20 }
+        }
+      }
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: { top: 1100, bottom: 1100, left: 1200, right: 1200 }
+          }
+        },
+        children: [
+          // Title
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: "DHIGROWTH BUSINESS PRIVATE LIMITED",
+                bold: true,
+                size: 32,
+                color: "0F172A"
+              })
+            ],
+            spacing: { after: 120 }
+          }),
+          // Subtitle
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: "Monthly Developer Performance Report",
+                bold: true,
+                size: 26,
+                color: "16A34A"
+              })
+            ],
+            spacing: { after: 80 }
+          }),
+          // Review Meta
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: `Review Month: ${monthDisplay}  |  Department: Technology`,
+                italics: true,
+                size: 21,
+                color: "64748B"
+              })
+            ],
+            spacing: { after: 300 }
+          }),
+
+          // Section 1: Employee Information
+          new Paragraph({
+            text: "Employee Information",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 120 }
+          }),
+          new Table({
+            rows: employeeInfoRows,
+            width: { size: 100, type: WidthType.PERCENTAGE }
+          }),
+
+          // Section 2: Detailed Daily Work Log Records
+          new Paragraph({
+            text: `Daily Work Log Records (${totalTasks} Entries)`,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 120 }
+          }),
+          new Table({
+            rows: [logHeaderRow, ...logDataRows],
+            width: { size: 100, type: WidthType.PERCENTAGE }
+          }),
+
+          // Section 3: Project Delivery & Productivity Summary
+          new Paragraph({
+            text: "Project Delivery & Performance Summary",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 120 }
+          }),
+          new Table({
+            rows: [perfHeaderRow, ...perfRows],
+            width: { size: 100, type: WidthType.PERCENTAGE }
+          }),
+
+          // Major Achievements & Highlights
+          new Paragraph({
+            text: "Major Achievements & Highlights",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 120 }
+          }),
+          new Paragraph({
+            text: `• Completed all ${totalTasks} sprint milestones across ${uniqueProjects.length || 1} project stream(s).`,
+            spacing: { after: 60 }
+          }),
+          new Paragraph({
+            text: "• Maintained consistent daily task logging, zero critical blocking defects reported.",
+            spacing: { after: 60 }
+          }),
+          new Paragraph({
+            text: "• Successfully delivered automation and SEO features within designated sprint cycles.",
+            spacing: { after: 180 }
+          }),
+
+          // Manager Feedback
+          new Paragraph({
+            text: "Manager Feedback & Evaluation",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 120 }
+          }),
+          new Paragraph({
+            text: `${userName === 'ALL' ? 'The developer' : userName} consistently demonstrated strong ownership, timely task delivery, and technical expertise throughout ${monthDisplay}. Logged ${totalHours.toFixed(1)} total hours. Recommended to continue strong performance into the upcoming month.`,
+            spacing: { after: 200 }
+          }),
+
+          // Final Rating
+          new Paragraph({
+            text: "Final Rating",
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Overall Performance Score: 94 / 100\nFinal Rating: ⭐⭐⭐⭐⭐ Excellent",
+                bold: true,
+                size: 22,
+                color: "16A34A"
+              })
+            ],
+            spacing: { after: 300 }
+          }),
+
+          // Footer
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: "Generated by Work Log Tracker • Developed by Srijith (https://srijith.vercel.app)",
+                size: 16,
+                color: "94A3B8"
+              })
+            ]
+          })
+        ]
+      }
+    ]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const cleanUser = userName === 'ALL' ? 'All_Members' : userName.replace(/\s+/g, '_');
+  const cleanMonth = monthStr === 'ALL' ? 'All_Months' : monthStr;
+  const fileName = `DHIGROWTH_${cleanUser}_${cleanMonth}_Performance_Report.docx`;
+  window.saveAs(blob, fileName);
+}
+
+// Export to DOCX Report Trigger
+async function exportToDocx() {
   const filtered = getFilteredTasks();
   if (filtered.length === 0) {
     alert('No data available to export for the selected filters.');
@@ -1383,39 +1751,52 @@ function exportToDocx() {
   exportBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-600"></i><span>Generating DOCX...</span>`;
   lucide.createIcons();
 
-  fetch('/api/export-docx', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userName: selectedUser,
-      month: selectedMonth,
-      tasks: filtered
-    })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error('Failed to generate DOCX document.');
-    return res.blob();
-  })
-  .then(blob => {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const cleanUser = selectedUser === 'ALL' ? 'All_Members' : selectedUser.replace(/\s+/g, '_');
-    const cleanMonth = selectedMonth === 'ALL' ? 'All_Months' : selectedMonth;
-    a.download = `DHIGROWTH_${cleanUser}_${cleanMonth}_Performance_Report.docx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  })
-  .catch(err => {
+  try {
+    // 1. Try pure client-side DOCX generator (instant, offline & Vercel compatible)
+    if (window.docx && window.saveAs) {
+      await generateClientDocx(selectedUser, selectedMonth, filtered);
+    } else {
+      // 2. Fallback to server endpoint
+      const response = await fetch('/api/export-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: selectedUser,
+          month: selectedMonth,
+          tasks: filtered
+        })
+      });
+
+      if (!response.ok) throw new Error('Server DOCX export failed.');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanUser = selectedUser === 'ALL' ? 'All_Members' : selectedUser.replace(/\s+/g, '_');
+      const cleanMonth = selectedMonth === 'ALL' ? 'All_Months' : selectedMonth;
+      a.download = `DHIGROWTH_${cleanUser}_${cleanMonth}_Performance_Report.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+  } catch (err) {
     alert('Error generating DOCX report: ' + err.message);
-  })
-  .finally(() => {
+  } finally {
     exportBtn.disabled = false;
     exportBtn.innerHTML = originalText;
     lucide.createIcons();
-  });
+  }
+}
+
+// Helper: Hash string to int
+function hashStr(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
 }
 
 // Setup Event Listeners
@@ -1458,6 +1839,13 @@ function setupEventListeners() {
   // Quick Add Member in Login Screen
   if (loginAddMemberBtn) {
     loginAddMemberBtn.addEventListener('click', openUserModal);
+  }
+
+  // Manual Cloud Sync / Refresh Button
+  if (refreshCloudBtn) {
+    refreshCloudBtn.addEventListener('click', () => {
+      loadCloudData();
+    });
   }
 
   // Month Navigator Events

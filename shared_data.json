@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "name": "Srijith",
+      "email": "srijith@example.com",
+      "pin": "1234",
+      "role": "admin",
+      "color": "bg-emerald-600"
+    }
+  ],
+  "projects": [
+    "DHIGROWTH"
+  ],
+  "tasks": [],
+  "reminderConfig": {}
+}

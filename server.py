@@ -170,10 +170,44 @@ class CustomHandler(http.server.SimpleHTTPRequestHandler):
             cfg = load_config()
             self.wfile.write(json.dumps(cfg).encode('utf-8'))
             return
+        elif self.path == '/api/data':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            data_file = os.path.join(DIRECTORY, 'shared_data.json')
+            if os.path.exists(data_file):
+                try:
+                    with open(data_file, 'r', encoding='utf-8') as f:
+                        saved_data = json.load(f)
+                    self.wfile.write(json.dumps({"success": True, "source": "local-json", "data": saved_data}).encode('utf-8'))
+                    return
+                except:
+                    pass
+            self.wfile.write(json.dumps({"success": True, "source": "none", "data": None}).encode('utf-8'))
+            return
         super().do_GET()
 
     def do_POST(self):
-        if self.path == '/api/save-config':
+        if self.path == '/api/data':
+            length = int(self.headers.get('content-length', 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body.decode('utf-8'))
+                data_file = os.path.join(DIRECTORY, 'shared_data.json')
+                with open(data_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "storage": "local-json"}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode('utf-8'))
+            return
+
+        elif self.path == '/api/save-config':
             length = int(self.headers.get('content-length', 0))
             body = self.rfile.read(length)
             try:
