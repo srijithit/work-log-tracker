@@ -1,4 +1,4 @@
-// Work Log Tracker Application Logic with Vercel Blob Cloud Sync, Client-side DHIGROWTH DOCX Export, In-Progress / Completed Status, PIN Security & User Settings
+// Work Log Tracker Application Logic with Mobile Optimization, Vercel Blob Cloud Sync, Client-side DOCX Export, Task Status & Security
 
 // Storage Keys
 const STORAGE_KEY_TASKS = 'work_tracker_tasks_v7';
@@ -6,6 +6,7 @@ const STORAGE_KEY_USERS = 'work_tracker_users_v7';
 const STORAGE_KEY_PROJECTS = 'work_tracker_projects_v7';
 const STORAGE_KEY_SESSION = 'work_tracker_session_v7';
 const STORAGE_KEY_REMINDER_CFG = 'work_tracker_reminder_cfg_v7';
+const STORAGE_KEY_VIEW_MODE = 'work_tracker_view_mode_v7';
 
 // Helper: Get Current Year-Month String (e.g. "2026-09")
 function getCurrentYearMonth() {
@@ -105,6 +106,7 @@ let selectedMonth = CURRENT_MONTH; // Auto-defaults to current month (e.g. "2026
 let searchQuery = '';
 let selectedProject = '';
 let selectedStatus = ''; // '' = All, 'Fully Completed', 'In Progress'
+let selectedViewMode = window.innerWidth < 768 ? 'cards' : (localStorage.getItem(STORAGE_KEY_VIEW_MODE) || 'cards');
 let selectedUserThemeColor = 'bg-emerald-600';
 let isSyncingWithCloud = false;
 
@@ -115,6 +117,8 @@ const cloudSyncStatusText = document.getElementById('cloudSyncStatusText');
 const refreshCloudBtn = document.getElementById('refreshCloudBtn');
 const userTabsContainer = document.getElementById('userTabsContainer');
 const workTableBody = document.getElementById('workTableBody');
+const workTableContainer = document.getElementById('workTableContainer');
+const mobileCardsContainer = document.getElementById('mobileCardsContainer');
 const emptyState = document.getElementById('emptyState');
 const currentViewTitle = document.getElementById('currentViewTitle');
 const filteredCountBadge = document.getElementById('filteredCountBadge');
@@ -123,6 +127,26 @@ const projectFilterSelect = document.getElementById('projectFilterSelect');
 const statusFilterSelect = document.getElementById('statusFilterSelect');
 const projectDatalist = document.getElementById('projectDatalist');
 const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+const viewCardsBtn = document.getElementById('viewCardsBtn');
+const viewTableBtn = document.getElementById('viewTableBtn');
+
+// Mobile Navigation & Drawer Elements
+const mobileMenuToggleBtn = document.getElementById('mobileMenuToggleBtn');
+const mobileDrawer = document.getElementById('mobileDrawer');
+const mobileCloseDrawerBtn = document.getElementById('mobileCloseDrawerBtn');
+const mobileUserBtn = document.getElementById('mobileUserBtn');
+const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+const drawerUserAvatar = document.getElementById('drawerUserAvatar');
+const drawerUserName = document.getElementById('drawerUserName');
+const drawerOpenSettingsBtn = document.getElementById('drawerOpenSettingsBtn');
+const mobileAddUserBtn = document.getElementById('mobileAddUserBtn');
+const mobileManageProjectsBtn = document.getElementById('mobileManageProjectsBtn');
+const mobileOpenRemindersBtn = document.getElementById('mobileOpenRemindersBtn');
+const mobileRefreshCloudBtn = document.getElementById('mobileRefreshCloudBtn');
+const mobileExportCsvBtn = document.getElementById('mobileExportCsvBtn');
+const mobileExportDocxBtn = document.getElementById('mobileExportDocxBtn');
+const mobileSwitchUserBtn = document.getElementById('mobileSwitchUserBtn');
+const mobileFabBtn = document.getElementById('mobileFabBtn');
 
 // Month Navigator Elements
 const monthPicker = document.getElementById('monthPicker');
@@ -142,7 +166,6 @@ const statTotalHours = document.getElementById('statTotalHours');
 const statCompletedTasks = document.getElementById('statCompletedTasks');
 const statInProgressTasks = document.getElementById('statInProgressTasks');
 const statActiveProjects = document.getElementById('statActiveProjects');
-const statTotalUsers = document.getElementById('statTotalUsers');
 
 // Task Modal Elements
 const taskModal = document.getElementById('taskModal');
@@ -509,9 +532,23 @@ function setLoggedInUser(user) {
 
   loginOverlay.classList.add('hidden');
 
-  headerUserName.textContent = user.name;
-  headerUserAvatar.textContent = user.name.charAt(0).toUpperCase();
-  headerUserAvatar.className = `w-6 h-6 rounded-full ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
+  // Update Desktop and Mobile User Avatars
+  if (headerUserName) headerUserName.textContent = user.name;
+  if (headerUserAvatar) {
+    headerUserAvatar.textContent = user.name.charAt(0).toUpperCase();
+    headerUserAvatar.className = `w-6 h-6 rounded-full ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
+  }
+  if (mobileUserAvatar) {
+    mobileUserAvatar.textContent = user.name.charAt(0).toUpperCase();
+    mobileUserAvatar.className = `w-7 h-7 rounded-lg ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shadow-xs`;
+  }
+  if (drawerUserAvatar) {
+    drawerUserAvatar.textContent = user.name.charAt(0).toUpperCase();
+    drawerUserAvatar.className = `w-8 h-8 rounded-xl ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shadow-xs`;
+  }
+  if (drawerUserName) {
+    drawerUserName.textContent = user.name;
+  }
 
   selectedUser = user.name;
 
@@ -523,6 +560,7 @@ function setLoggedInUser(user) {
 function logoutUser() {
   localStorage.removeItem(STORAGE_KEY_SESSION);
   currentLoggedInUser = null;
+  if (mobileDrawer) mobileDrawer.classList.add('hidden');
   showLoginScreen();
 }
 
@@ -615,14 +653,46 @@ function formatDateForDisplay(dateStr) {
 // Render everything
 function renderAll() {
   updateMonthDisplay();
+  updateViewModeDisplay();
   renderUserTabs();
   renderUserSelectOptions();
   renderProjectOptions();
   renderTable();
+  renderMobileCards();
   renderStats();
   renderUserList();
   renderProjectList();
   renderMemberEmailsList();
+}
+
+// Update View Mode Display (Cards vs Table)
+function updateViewModeDisplay() {
+  if (selectedViewMode === 'table') {
+    if (workTableContainer) workTableContainer.classList.remove('hidden');
+    if (mobileCardsContainer) mobileCardsContainer.classList.add('hidden');
+    if (viewTableBtn) {
+      viewTableBtn.className = 'px-2.5 py-1 rounded-md font-semibold text-emerald-700 bg-white shadow-2xs transition-all cursor-pointer flex items-center gap-1';
+    }
+    if (viewCardsBtn) {
+      viewCardsBtn.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1';
+    }
+  } else {
+    if (workTableContainer) workTableContainer.classList.add('hidden');
+    if (mobileCardsContainer) mobileCardsContainer.classList.remove('hidden');
+    if (viewCardsBtn) {
+      viewCardsBtn.className = 'px-2.5 py-1 rounded-md font-semibold text-emerald-700 bg-white shadow-2xs transition-all cursor-pointer flex items-center gap-1';
+    }
+    if (viewTableBtn) {
+      viewTableBtn.className = 'px-2.5 py-1 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1';
+    }
+  }
+}
+
+// Switch View Mode
+function setViewMode(mode) {
+  selectedViewMode = mode;
+  localStorage.setItem(STORAGE_KEY_VIEW_MODE, mode);
+  updateViewModeDisplay();
 }
 
 // Render User Filter Tabs
@@ -633,10 +703,10 @@ function renderUserTabs() {
 
   // "All Members" tab
   const allBtn = document.createElement('button');
-  allBtn.className = `user-tab-btn shrink-0 px-3.5 py-1.5 text-xs font-bold rounded-xl cursor-pointer transition-all ${
+  allBtn.className = `user-tab-btn shrink-0 px-3 py-1.5 text-xs font-bold rounded-xl cursor-pointer transition-all ${
     selectedUser === 'ALL' ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
   }`;
-  allBtn.innerHTML = `<span>👥 All Members</span> <span class="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-slate-200/60 ${selectedUser === 'ALL' ? 'text-slate-900 bg-white' : ''}">${currentMonthTasks.length}</span>`;
+  allBtn.innerHTML = `<span>👥 All</span> <span class="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-slate-200/60 ${selectedUser === 'ALL' ? 'text-slate-900 bg-white' : ''}">${currentMonthTasks.length}</span>`;
   allBtn.addEventListener('click', () => {
     selectedUser = 'ALL';
     renderAll();
@@ -652,7 +722,7 @@ function renderUserTabs() {
       selectedUser === user.name ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
     }`;
     btn.innerHTML = `
-      <span class="w-2 h-2 rounded-full ${user.color || 'bg-emerald-500'} inline-block"></span>
+      <span class="w-2 h-2 rounded-full ${user.color || 'bg-emerald-500'} inline-block shrink-0"></span>
       <span>${escapeHtml(user.name)} ${isCurrentUser ? '<strong class="text-[10px] text-emerald-400 ml-0.5">(You)</strong>' : ''}</span>
       <span class="px-1.5 py-0.2 text-[10px] rounded-full ${selectedUser === user.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}">${userTaskCount}</span>
     `;
@@ -735,7 +805,122 @@ window.toggleTaskStatus = function(taskId) {
   renderAll();
 };
 
-// Render Table Rows with Status Column & Strict Ownership Protection
+// Render Mobile Task Cards (Touch-friendly & highly readable)
+function renderMobileCards() {
+  if (!mobileCardsContainer) return;
+
+  const filtered = getFilteredTasks();
+
+  if (filtered.length === 0) {
+    mobileCardsContainer.innerHTML = '';
+    return;
+  }
+
+  mobileCardsContainer.innerHTML = '';
+
+  filtered.forEach((task, index) => {
+    const userObj = users.find(u => u.name === task.user);
+    const isOwner = currentLoggedInUser && task.user === currentLoggedInUser.name;
+    const isCompleted = (task.status || 'Fully Completed') === 'Fully Completed';
+    const workTiming = task.workTimeFormatted || `${format12Hour(task.startTime)} TO ${format12Hour(task.endTime)}`;
+    const hrsDisplay = task.hours ? `${task.hours} hrs` : `${calculateHours(task.startTime, task.endTime)} hrs`;
+
+    const card = document.createElement('div');
+    card.className = 'bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 transition-all';
+
+    card.innerHTML = `
+      <!-- Top Meta: Date, User, Status Toggle -->
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg ${userObj ? userObj.color : 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+            ${(task.user || 'U').charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <span class="text-xs font-bold text-slate-900 block leading-tight">${escapeHtml(task.user)}</span>
+            <span class="text-[10px] text-slate-400 font-semibold">${formatDateForDisplay(task.date)}</span>
+          </div>
+        </div>
+
+        <button 
+          onclick="toggleTaskStatus('${task.id}')" 
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold cursor-pointer transition-all shadow-2xs ${
+            isCompleted 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+              : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 animate-pulse'
+          }"
+          title="${isOwner ? 'Tap to toggle status' : (isCompleted ? 'Fully Completed' : 'In Progress')}"
+        >
+          <span class="w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+          <span>${isCompleted ? 'Fully Completed' : 'In Progress'}</span>
+        </button>
+      </div>
+
+      <!-- Task Summary -->
+      <div>
+        <p class="text-xs font-bold text-slate-800 uppercase leading-relaxed tracking-tight">
+          ${escapeHtml(task.tasks)}
+        </p>
+      </div>
+
+      <!-- Project Tag -->
+      <div class="flex items-center gap-1.5">
+        <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200/60 text-[10px] font-extrabold uppercase truncate max-w-[240px]">
+          📁 ${escapeHtml(task.projectName)}
+        </span>
+      </div>
+
+      <!-- Bottom Row: Time, Hours & Owner Actions -->
+      <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+            ${escapeHtml(workTiming)}
+          </span>
+          <span class="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            ${hrsDisplay}
+          </span>
+        </div>
+
+        <div>
+          ${(() => {
+            if (isOwner) {
+              return `
+                <div class="flex items-center gap-1">
+                  <button 
+                    onclick="editTask('${task.id}')" 
+                    class="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 bg-white border border-slate-200 shadow-2xs active:scale-95 transition-all" 
+                    title="Edit Your Log"
+                  >
+                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button 
+                    onclick="deleteTask('${task.id}')" 
+                    class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 bg-white border border-slate-200 shadow-2xs active:scale-95 transition-all" 
+                    title="Delete Your Log"
+                  >
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              `;
+            } else {
+              return `
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                  <i data-lucide="lock" class="w-2.5 h-2.5 text-slate-400"></i>
+                  <span>Locked</span>
+                </span>
+              `;
+            }
+          })()}
+        </div>
+      </div>
+    `;
+
+    mobileCardsContainer.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+// Render Desktop Table Rows with Status Column & Strict Ownership Protection
 function renderTable() {
   const filtered = getFilteredTasks();
 
@@ -858,8 +1043,6 @@ function renderStats() {
 
   const activeProjectsCount = new Set(currentTasks.map(t => t.projectName).filter(Boolean)).size;
   statActiveProjects.textContent = activeProjectsCount;
-
-  if (statTotalUsers) statTotalUsers.textContent = users.length;
 }
 
 // Render User List in Management Modal
@@ -880,7 +1063,7 @@ function renderUserList() {
       </div>
       <button 
         onclick="deleteUser('${escapeHtml(user.name)}')" 
-        class="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+        class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
         title="Remove Member"
       >
         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -917,7 +1100,7 @@ function renderProjectList() {
       </div>
       <button 
         onclick="deleteProject('${escapeHtml(proj)}')" 
-        class="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
+        class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer shrink-0 ml-2"
         title="Remove Project"
       >
         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -1397,9 +1580,19 @@ userSettingsForm.addEventListener('submit', (e) => {
 
   saveData(true);
 
-  headerUserName.textContent = currentLoggedInUser.name;
-  headerUserAvatar.textContent = currentLoggedInUser.name.charAt(0).toUpperCase();
-  headerUserAvatar.className = `w-6 h-6 rounded-full ${currentLoggedInUser.color} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
+  if (headerUserName) headerUserName.textContent = currentLoggedInUser.name;
+  if (headerUserAvatar) {
+    headerUserAvatar.textContent = currentLoggedInUser.name.charAt(0).toUpperCase();
+    headerUserAvatar.className = `w-6 h-6 rounded-full ${currentLoggedInUser.color} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
+  }
+  if (mobileUserAvatar) {
+    mobileUserAvatar.textContent = currentLoggedInUser.name.charAt(0).toUpperCase();
+    mobileUserAvatar.className = `w-7 h-7 rounded-lg ${currentLoggedInUser.color} text-white flex items-center justify-center font-bold text-xs shadow-xs`;
+  }
+  if (drawerUserAvatar) {
+    drawerUserAvatar.textContent = currentLoggedInUser.name.charAt(0).toUpperCase();
+    drawerUserAvatar.className = `w-8 h-8 rounded-xl ${currentLoggedInUser.color} text-white flex items-center justify-center font-bold text-xs shadow-xs`;
+  }
 
   renderAll();
 
@@ -1802,10 +1995,12 @@ async function exportToDocx() {
   }
 
   const exportBtn = document.getElementById('exportDocxBtn');
-  const originalText = exportBtn.innerHTML;
-  exportBtn.disabled = true;
-  exportBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-600"></i><span>Generating DOCX...</span>`;
-  lucide.createIcons();
+  const originalText = exportBtn ? exportBtn.innerHTML : '';
+  if (exportBtn) {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-600"></i><span>Generating DOCX...</span>`;
+    lucide.createIcons();
+  }
 
   try {
     if (window.docx && window.saveAs) {
@@ -1837,9 +2032,11 @@ async function exportToDocx() {
   } catch (err) {
     alert('Error generating DOCX report: ' + err.message);
   } finally {
-    exportBtn.disabled = false;
-    exportBtn.innerHTML = originalText;
-    lucide.createIcons();
+    if (exportBtn) {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = originalText;
+      lucide.createIcons();
+    }
   }
 }
 
@@ -1862,6 +2059,79 @@ function setupEventListeners() {
     const pin = loginPinInput.value.trim();
     loginUser(user, pin);
   });
+
+  // Mobile Drawer & Menu Toggle
+  if (mobileMenuToggleBtn) {
+    mobileMenuToggleBtn.addEventListener('click', () => {
+      mobileDrawer.classList.toggle('hidden');
+    });
+  }
+  if (mobileCloseDrawerBtn) {
+    mobileCloseDrawerBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+    });
+  }
+  if (mobileUserBtn) {
+    mobileUserBtn.addEventListener('click', openUserSettingsModal);
+  }
+  if (drawerOpenSettingsBtn) {
+    drawerOpenSettingsBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      openUserSettingsModal();
+    });
+  }
+  if (mobileAddUserBtn) {
+    mobileAddUserBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      openUserModal();
+    });
+  }
+  if (mobileManageProjectsBtn) {
+    mobileManageProjectsBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      openProjectModal();
+    });
+  }
+  if (mobileOpenRemindersBtn) {
+    mobileOpenRemindersBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      openRemindersModal();
+    });
+  }
+  if (mobileRefreshCloudBtn) {
+    mobileRefreshCloudBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      loadCloudData();
+    });
+  }
+  if (mobileExportCsvBtn) {
+    mobileExportCsvBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      exportToCsv();
+    });
+  }
+  if (mobileExportDocxBtn) {
+    mobileExportDocxBtn.addEventListener('click', () => {
+      mobileDrawer.classList.add('hidden');
+      exportToDocx();
+    });
+  }
+  if (mobileSwitchUserBtn) {
+    mobileSwitchUserBtn.addEventListener('click', logoutUser);
+  }
+
+  // Floating Action Button (FAB)
+  if (mobileFabBtn) {
+    mobileFabBtn.addEventListener('click', () => openTaskModal());
+  }
+
+  // View Mode Switcher
+  if (viewCardsBtn) {
+    viewCardsBtn.addEventListener('click', () => setViewMode('cards'));
+  }
+  if (viewTableBtn) {
+    viewTableBtn.addEventListener('click', () => setViewMode('table'));
+  }
 
   // User Settings Modal Triggers
   if (openUserSettingsBtn) {
@@ -1928,7 +2198,7 @@ function setupEventListeners() {
   if (statusFilterSelect) {
     statusFilterSelect.addEventListener('change', (e) => {
       selectedStatus = e.target.value;
-      renderTable();
+      renderAll();
     });
   }
 
@@ -1990,13 +2260,13 @@ function setupEventListeners() {
   // Search input
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
-    renderTable();
+    renderAll();
   });
 
   // Project filter
   projectFilterSelect.addEventListener('change', (e) => {
     selectedProject = e.target.value;
-    renderTable();
+    renderAll();
   });
 
   // Clear filters

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Work Log Tracker</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,29 +33,31 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-['Plus_Jakarta_Sans',sans-serif]">
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-['Plus_Jakarta_Sans',sans-serif] pb-24 sm:pb-12">
 
   <!-- Header & Navigation -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+    <div class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
+      
+      <!-- Brand & Status -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
           <i data-lucide="calendar-check" class="w-5 h-5"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-slate-900 leading-tight">Work Log Tracker</h1>
-          <div class="flex items-center gap-2">
-            <p class="text-xs text-slate-500 font-medium" id="currentMonthYearBadge">September 2026</p>
-            <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded-md" id="cloudSyncStatusBadge" title="Vercel Cloud Blob Storage active">
-              <i data-lucide="cloud-check" class="w-3 h-3 text-emerald-600"></i>
-              <span id="cloudSyncStatusText">Cloud Synced</span>
+          <h1 class="text-base sm:text-xl font-extrabold text-slate-900 leading-tight">Work Log Tracker</h1>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <p class="text-[11px] sm:text-xs text-slate-500 font-medium" id="currentMonthYearBadge">September 2026</p>
+            <span class="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.2 rounded-md" id="cloudSyncStatusBadge" title="Vercel Cloud Blob Storage active">
+              <i data-lucide="cloud-check" class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600"></i>
+              <span id="cloudSyncStatusText">Synced</span>
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Header Actions -->
-      <div class="flex items-center gap-2 flex-wrap">
+      <!-- Desktop Header Actions (Hidden on Mobile) -->
+      <div class="hidden lg:flex items-center gap-2 flex-wrap">
         <button id="refreshCloudBtn" class="p-2 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer" title="Refresh & Pull latest team records from cloud">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
@@ -91,7 +93,7 @@
         </button>
 
         <!-- Current Logged In User Pill & Settings -->
-        <div class="h-6 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
+        <div class="h-6 w-[1px] bg-slate-200 mx-1"></div>
         <div id="currentUserBadgeContainer" class="flex items-center gap-1.5 pl-1">
           <!-- Profile Badge (opens Settings on click) -->
           <div class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200/80 px-2.5 py-1.5 rounded-xl border border-slate-200 cursor-pointer transition-all" id="openUserSettingsBtn" title="Click to Change PIN / Profile Settings">
@@ -111,149 +113,235 @@
           </button>
         </div>
       </div>
+
+      <!-- Mobile Top Bar Right (Avatar + Menu Button) -->
+      <div class="flex items-center gap-2 lg:hidden">
+        <!-- User avatar quick tap for settings -->
+        <button id="mobileUserBtn" class="flex items-center gap-1.5 p-1 bg-slate-100 border border-slate-200 rounded-xl cursor-pointer">
+          <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs" id="mobileUserAvatar">
+            S
+          </div>
+        </button>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobileMenuToggleBtn" class="p-2 text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-colors cursor-pointer" aria-label="Open Menu">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Slide-Down Actions Drawer -->
+    <div id="mobileDrawer" class="hidden lg:hidden border-t border-slate-200 bg-white/98 backdrop-blur-md px-4 py-4 space-y-3 transition-all">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs" id="drawerUserAvatar">
+            S
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-900" id="drawerUserName">Srijith</p>
+            <p class="text-[10px] text-emerald-600 font-semibold">Active Session</p>
+          </div>
+        </div>
+        <button id="drawerOpenSettingsBtn" class="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 flex items-center gap-1">
+          <i data-lucide="settings" class="w-3.5 h-3.5"></i> Settings
+        </button>
+      </div>
+
+      <!-- Mobile Action Grid -->
+      <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+        <button id="mobileAddUserBtn" class="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center gap-2 text-slate-700">
+          <i data-lucide="user-plus" class="w-4 h-4 text-slate-600"></i> Members
+        </button>
+        <button id="mobileManageProjectsBtn" class="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center gap-2 text-slate-700">
+          <i data-lucide="folder-plus" class="w-4 h-4 text-purple-600"></i> Projects
+        </button>
+        <button id="mobileOpenRemindersBtn" class="p-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/60 rounded-xl flex items-center gap-2">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-amber-600"></i> 5 PM Alerts
+        </button>
+        <button id="mobileRefreshCloudBtn" class="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center gap-2 text-slate-700">
+          <i data-lucide="refresh-cw" class="w-4 h-4 text-emerald-600"></i> Refresh Cloud
+        </button>
+        <button id="mobileExportCsvBtn" class="p-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 rounded-xl flex items-center gap-2">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i> Export CSV
+        </button>
+        <button id="mobileExportDocxBtn" class="p-2.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded-xl flex items-center gap-2">
+          <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Export DOCX
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <button id="mobileSwitchUserBtn" class="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1.5 py-1">
+          <i data-lucide="log-out" class="w-4 h-4"></i> Switch / Sign Out
+        </button>
+        <button id="mobileCloseDrawerBtn" class="text-xs font-semibold text-slate-400 p-1">
+          Close
+        </button>
+      </div>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <main class="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
     <!-- KPI / Overview Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
       <!-- Total Entries -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-          <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+      <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <i data-lucide="clipboard-list" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Logs</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-slate-800" id="statTotalEntries">0</p>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Logs</p>
+          <p class="text-lg sm:text-2xl font-extrabold text-slate-800" id="statTotalEntries">0</p>
         </div>
       </div>
 
       <!-- Total Hours -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-          <i data-lucide="clock" class="w-5 h-5"></i>
+      <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="clock" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Hours</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-emerald-600" id="statTotalHours">0h 0m</p>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Hours</p>
+          <p class="text-lg sm:text-2xl font-extrabold text-emerald-600" id="statTotalHours">0h 0m</p>
         </div>
       </div>
 
       <!-- Fully Completed -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+      <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="check-circle-2" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Completed</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-emerald-600" id="statCompletedTasks">0</p>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Completed</p>
+          <p class="text-lg sm:text-2xl font-extrabold text-emerald-600" id="statCompletedTasks">0</p>
         </div>
       </div>
 
       <!-- In Progress -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-          <i data-lucide="timer" class="w-5 h-5 animate-pulse"></i>
+      <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-2.5 sm:gap-3">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <i data-lucide="timer" class="w-4 h-4 sm:w-5 sm:h-5 animate-pulse"></i>
         </div>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">In Progress</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-amber-600" id="statInProgressTasks">0</p>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">In Progress</p>
+          <p class="text-lg sm:text-2xl font-extrabold text-amber-600" id="statInProgressTasks">0</p>
         </div>
       </div>
 
       <!-- Active Projects -->
-      <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3 col-span-2 sm:col-span-1">
-        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-          <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+      <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center gap-2.5 sm:gap-3 col-span-2 sm:col-span-1">
+        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+          <i data-lucide="folder-kanban" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
         <div>
-          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Projects</p>
-          <p class="text-xl sm:text-2xl font-extrabold text-slate-800" id="statActiveProjects">0</p>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Projects</p>
+          <p class="text-lg sm:text-2xl font-extrabold text-slate-800" id="statActiveProjects">0</p>
         </div>
       </div>
     </div>
 
     <!-- User Selection Bar / Tabs & Filters -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <!-- User Tabs -->
-        <div class="flex-1 overflow-hidden">
-          <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 sm:p-4 space-y-3">
+      <!-- Member Tabs -->
+      <div class="overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
             Team Member Tabs
           </label>
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-thin" id="userTabsContainer">
-            <!-- Dynamically populated user tabs -->
-          </div>
+          <span class="text-[10px] text-slate-400 font-medium sm:hidden">Swipe ➔</span>
+        </div>
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full no-scrollbar" id="userTabsContainer">
+          <!-- Dynamically populated user tabs -->
+        </div>
+      </div>
+
+      <!-- Filters & Navigator Grid -->
+      <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2">
+        <!-- Month Navigator -->
+        <div class="flex items-center justify-between bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+          <button type="button" id="prevMonthBtn" title="Previous Month" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <input 
+            type="month" 
+            id="monthPicker" 
+            class="text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-hidden cursor-pointer text-center"
+          >
+          <button type="button" id="nextMonthBtn" title="Next Month" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+          <button type="button" id="allMonthsBtn" class="text-[10px] font-bold px-2 py-1 rounded-md bg-slate-200/60 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer ml-1" title="View all months">
+            All
+          </button>
         </div>
 
-        <!-- Quick Search, Month Navigator & Project Filter -->
-        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          <!-- Month Navigator -->
-          <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200 shadow-2xs">
-            <button type="button" id="prevMonthBtn" title="Previous Month" class="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
-              <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
-            </button>
-            <input 
-              type="month" 
-              id="monthPicker" 
-              class="text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-hidden cursor-pointer"
-            >
-            <button type="button" id="nextMonthBtn" title="Next Month" class="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer">
-              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-            </button>
-            <button type="button" id="allMonthsBtn" class="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200/60 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer ml-0.5" title="View all months">
-              All
-            </button>
-          </div>
-
-          <div class="relative w-full sm:w-48">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-            <input 
-              type="text" 
-              id="searchInput" 
-              placeholder="Search task or project..." 
-              class="w-full pl-9 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-            >
-          </div>
-
-          <select id="projectFilterSelect" class="py-2 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
-            <option value="">All Projects</option>
-          </select>
-
-          <select id="statusFilterSelect" class="py-2 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
-            <option value="">All Statuses</option>
-            <option value="Fully Completed">🟢 Fully Completed</option>
-            <option value="In Progress">🟡 In Progress</option>
-          </select>
+        <!-- Search Input -->
+        <div class="relative w-full">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search task or project..." 
+            class="w-full pl-9 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+          >
         </div>
+
+        <!-- Project Filter -->
+        <select id="projectFilterSelect" class="w-full sm:w-auto py-2 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+          <option value="">All Projects</option>
+        </select>
+
+        <!-- Status Filter -->
+        <select id="statusFilterSelect" class="w-full sm:w-auto py-2 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+          <option value="">All Statuses</option>
+          <option value="Fully Completed">🟢 Fully Completed</option>
+          <option value="In Progress">🟡 In Progress</option>
+        </select>
       </div>
     </div>
 
-    <!-- Main Data Table Container -->
+    <!-- Main Data Container (Table & Mobile Cards) -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <!-- Table Header Bar -->
-      <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-white to-slate-50">
+      <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-white to-slate-50">
         <div>
           <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2" id="currentViewTitle">
             <span>All Records</span>
           </h2>
-          <p class="text-xs text-slate-500">Spreadsheet-style daily work records</p>
+          <p class="text-[11px] sm:text-xs text-slate-500">Daily work log records</p>
         </div>
 
-        <div class="flex items-center gap-3">
-          <div class="text-xs text-slate-500 font-medium">
-            Showing <span id="filteredCountBadge" class="font-bold text-slate-800">0</span> entries
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- View Switcher (Cards / Table) -->
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+            <button id="viewCardsBtn" class="px-2.5 py-1 rounded-md font-semibold text-slate-700 transition-all cursor-pointer flex items-center gap-1 bg-white shadow-2xs text-emerald-700" title="Card View (Optimized for Mobile)">
+              <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Cards</span>
+            </button>
+            <button id="viewTableBtn" class="px-2.5 py-1 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1" title="Spreadsheet Table View">
+              <i data-lucide="table" class="w-3.5 h-3.5"></i>
+              <span class="hidden sm:inline">Table</span>
+            </button>
+          </div>
+
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium">
+            <span id="filteredCountBadge" class="font-bold text-slate-800">0</span> logs
           </div>
           <button id="clearFiltersBtn" class="hidden text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
-            Reset Filters
+            Reset
           </button>
         </div>
       </div>
 
-      <!-- Responsive Table -->
-      <div class="overflow-x-auto">
+      <!-- Mobile Task Cards View (Default on small screens) -->
+      <div id="mobileCardsContainer" class="p-3 sm:p-4 space-y-3">
+        <!-- Dynamically rendered mobile cards -->
+      </div>
+
+      <!-- Responsive Desktop Spreadsheet Table -->
+      <div id="workTableContainer" class="hidden overflow-x-auto">
         <table class="w-full text-left border-collapse" id="workTable">
           <thead>
             <tr class="bg-amber-300 text-slate-900 border-b border-amber-400/80 text-[11px] font-extrabold tracking-wider uppercase">
@@ -275,22 +363,32 @@
       </div>
 
       <!-- Empty State -->
-      <div id="emptyState" class="hidden py-16 text-center px-4">
-        <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400 mb-3">
-          <i data-lucide="inbox" class="w-7 h-7"></i>
+      <div id="emptyState" class="hidden py-12 sm:py-16 text-center px-4">
+        <div class="w-12 h-12 sm:w-14 sm:h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-400 mb-3">
+          <i data-lucide="inbox" class="w-6 h-6 sm:w-7 sm:h-7"></i>
         </div>
         <h3 class="text-sm font-bold text-slate-700">No work records found</h3>
-        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Try selecting another user tab or click below to log work.</p>
-        <button onclick="document.getElementById('openAddTaskModalBtn').click()" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors cursor-pointer shadow-sm">
+        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Try selecting another user tab or tap below to log work.</p>
+        <button onclick="document.getElementById('openAddTaskModalBtn').click()" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer shadow-sm">
           <i data-lucide="plus" class="w-4 h-4"></i> Log New Work
         </button>
       </div>
     </div>
   </main>
 
+  <!-- Mobile Floating Action Button (FAB) for 1-Tap Work Logging -->
+  <button 
+    id="mobileFabBtn" 
+    class="lg:hidden fixed bottom-6 right-5 z-40 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full p-4 shadow-xl shadow-emerald-600/35 flex items-center justify-center cursor-pointer active:scale-90 transition-all border-2 border-white" 
+    title="Log Work"
+    aria-label="Log Work"
+  >
+    <i data-lucide="plus" class="w-6 h-6"></i>
+  </button>
+
   <!-- Footer -->
   <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-slate-200/80 mt-10 text-center">
-    <p class="text-xs text-slate-500 font-medium flex items-center justify-center gap-1.5">
+    <p class="text-xs text-slate-500 font-medium flex items-center justify-center gap-1.5 flex-wrap">
       <span>Developed by</span>
       <a 
         href="https://srijith.vercel.app" 
@@ -299,42 +397,43 @@
         class="inline-flex items-center gap-1 font-bold text-emerald-600 hover:text-emerald-700 hover:underline decoration-2 underline-offset-2 transition-colors bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/60"
       >
         <span>Srijith</span>
-        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        <i data-lucide="external-link" class="w-3 h-3"></i>
       </a>
+      <span>• Work Log Tracker</span>
     </p>
   </footer>
 
-  <!-- MODAL: Add / Edit Task Form -->
-  <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform scale-95 transition-transform duration-200" id="taskModalContainer">
+  <!-- MODAL: Add / Edit Work Record (Bottom-sheet on mobile) -->
+  <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto transform scale-95 transition-transform duration-200 modal-sheet-container" id="taskModalContainer">
       <!-- Modal Header -->
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 sticky top-0 z-10">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <i data-lucide="edit-3" class="w-4 h-4" id="modalIcon"></i>
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
           </div>
           <h3 class="text-base font-bold text-slate-900" id="modalTitle">Log Daily Work</h3>
         </div>
-        <button id="closeTaskModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+        <button id="closeTaskModalBtn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <!-- Modal Body Form -->
-      <form id="taskForm" class="p-6 space-y-4">
+      <form id="taskForm" class="p-5 sm:p-6 space-y-4">
         <input type="hidden" id="taskId">
 
         <!-- User Selection & Date -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">User / Member *</label>
-            <select id="taskUserSelect" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            <select id="taskUserSelect" required class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
               <!-- Users options -->
             </select>
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5">Date *</label>
-            <input type="date" id="taskDate" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            <input type="date" id="taskDate" required class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
           </div>
         </div>
 
@@ -343,7 +442,7 @@
           <div class="flex items-center justify-between mb-1.5">
             <label class="block text-xs font-bold text-slate-700">Project Name *</label>
             <button type="button" id="quickAddProjectBtn" class="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-0.5 cursor-pointer">
-              <i data-lucide="plus" class="w-3 h-3"></i> Manage Projects
+              <i data-lucide="plus" class="w-3 h-3"></i> Projects
             </button>
           </div>
           <input 
@@ -352,7 +451,7 @@
             list="projectDatalist"
             placeholder="Select or type project name..." 
             required 
-            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
+            class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
           >
           <datalist id="projectDatalist">
             <!-- Dynamically populated -->
@@ -369,20 +468,20 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <span class="text-[11px] text-slate-500 font-medium">Start Time</span>
-              <input type="time" id="taskStartTime" value="10:00" class="w-full mt-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+              <input type="time" id="taskStartTime" value="10:00" class="w-full mt-1 px-2.5 py-2 text-sm sm:text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
             </div>
             <div>
               <span class="text-[11px] text-slate-500 font-medium">End Time</span>
-              <input type="time" id="taskEndTime" value="18:30" class="w-full mt-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+              <input type="time" id="taskEndTime" value="18:30" class="w-full mt-1 px-2.5 py-2 text-sm sm:text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
             </div>
           </div>
 
           <!-- Quick presets -->
           <div class="flex items-center gap-1.5 pt-1 flex-wrap">
             <span class="text-[10px] text-slate-400 font-semibold uppercase">Presets:</span>
-            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="18:30">10 AM - 6:30 PM (8.5h)</button>
-            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="09:00" data-end="17:00">9 AM - 5 PM (8h)</button>
-            <button type="button" class="time-preset-btn px-2 py-0.5 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="14:00">Half Day (4h)</button>
+            <button type="button" class="time-preset-btn px-2.5 py-1 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded-lg text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="18:30">10 AM - 6:30 PM (8.5h)</button>
+            <button type="button" class="time-preset-btn px-2.5 py-1 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded-lg text-slate-600 font-medium cursor-pointer" data-start="09:00" data-end="17:00">9 AM - 5 PM (8h)</button>
+            <button type="button" class="time-preset-btn px-2.5 py-1 text-[11px] bg-white hover:bg-slate-200 border border-slate-200 rounded-lg text-slate-600 font-medium cursor-pointer" data-start="10:00" data-end="14:00">Half Day (4h)</button>
           </div>
         </div>
 
@@ -394,22 +493,22 @@
             rows="3" 
             placeholder="e.g. WHATSAPP AUTOMATION & DHIGROWTH SEO CHANGES" 
             required 
-            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
+            class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium uppercase"
           ></textarea>
         </div>
 
-        <!-- Task Status -->
+        <!-- Task Status Radio -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-1.5">Task Progress / Status *</label>
-          <div class="grid grid-cols-2 gap-3">
-            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/70 has-[:checked]:ring-2 has-[:checked]:ring-emerald-500/20">
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="flex items-center gap-2 p-2.5 sm:p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/70 has-[:checked]:ring-2 has-[:checked]:ring-emerald-500/20">
               <input type="radio" name="taskStatusRadio" id="statusCompletedRadio" value="Fully Completed" checked class="text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer">
               <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <span>Fully Completed</span>
               </div>
             </label>
-            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50/70 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
+            <label class="flex items-center gap-2 p-2.5 sm:p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50/70 has-[:checked]:ring-2 has-[:checked]:ring-amber-500/20">
               <input type="radio" name="taskStatusRadio" id="statusInProgressRadio" value="In Progress" class="text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
               <div class="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                 <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -421,10 +520,10 @@
 
         <!-- Submit Buttons -->
         <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-          <button type="button" id="cancelTaskModalBtn" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+          <button type="button" id="cancelTaskModalBtn" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">
             Cancel
           </button>
-          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+          <button type="submit" class="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
             Save Record
           </button>
         </div>
@@ -433,186 +532,173 @@
   </div>
 
   <!-- MODAL: Manage / Add User -->
-  <div id="userModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="userModalContainer">
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+  <div id="userModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto transform scale-95 transition-transform duration-200 modal-sheet-container" id="userModalContainer">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
             <i data-lucide="users" class="w-4 h-4"></i>
           </div>
           <h3 class="text-base font-bold text-slate-900">Manage Team Members</h3>
         </div>
-        <button id="closeUserModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+        <button id="closeUserModalBtn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-4">
+      <div class="p-5 sm:p-6 space-y-4">
         <!-- Add New User Form -->
-        <form id="addUserForm" class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">Member Name *</label>
+        <form id="addUserForm" class="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <label class="block text-xs font-bold text-slate-700">Add New Team Member</label>
+          <div class="space-y-2">
             <input 
               type="text" 
               id="newUserNameInput" 
-              placeholder="Member Name (e.g. Rachel Green)" 
+              placeholder="Full Name (e.g. Rahul)" 
               required 
-              class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+              class="w-full px-3 py-2 text-sm sm:text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+            >
+            <input 
+              type="email" 
+              id="newUserEmailInput" 
+              placeholder="Email address (for 5 PM daily alerts)" 
+              class="w-full px-3 py-2 text-sm sm:text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+            >
+            <input 
+              type="password" 
+              id="newUserPinInput" 
+              placeholder="Set 4-Digit Login PIN" 
+              maxlength="6"
+              class="w-full px-3 py-2 text-sm sm:text-xs bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium tracking-widest"
             >
           </div>
-          <div class="grid grid-cols-3 gap-2">
-            <div class="col-span-2">
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">Notification Email *</label>
-              <input 
-                type="email" 
-                id="newUserEmailInput" 
-                placeholder="name@example.com" 
-                required
-                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
-              >
-            </div>
-            <div class="col-span-1">
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">PIN (default 1234)</label>
-              <input 
-                type="password" 
-                id="newUserPinInput" 
-                placeholder="1234" 
-                maxlength="6"
-                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-center"
-              >
-            </div>
-          </div>
-          <div class="flex items-center justify-end pt-1">
-            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer">
-              Add Member
-            </button>
-          </div>
+          <button type="submit" class="w-full py-2 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Member
+          </button>
         </form>
 
-        <!-- Current User List -->
+        <!-- Existing Users List -->
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-2">Existing Members</label>
-          <div id="userListContainer" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
-            <!-- User list items -->
+          <label class="block text-xs font-bold text-slate-700 mb-2">Current Members</label>
+          <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto" id="userListContainer">
+            <!-- Populated via JS -->
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Manage / Add Projects -->
-  <div id="projectModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="projectModalContainer">
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+  <!-- MODAL: Manage Projects -->
+  <div id="projectModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto transform scale-95 transition-transform duration-200 modal-sheet-container" id="projectModalContainer">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
             <i data-lucide="folder-kanban" class="w-4 h-4"></i>
           </div>
           <h3 class="text-base font-bold text-slate-900">Manage Projects</h3>
         </div>
-        <button id="closeProjectModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+        <button id="closeProjectModalBtn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-4">
+      <div class="p-5 sm:p-6 space-y-4">
         <!-- Add New Project Form -->
         <form id="addProjectForm" class="flex gap-2">
           <input 
             type="text" 
             id="newProjectNameInput" 
-            placeholder="New project name (e.g. MARKETING AUTOMATION)" 
+            placeholder="New Project Name..." 
             required 
-            class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium uppercase"
+            class="flex-1 px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 font-medium uppercase"
           >
-          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer">
+          <button type="submit" class="py-2 px-4 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm transition-colors cursor-pointer shrink-0">
             Add
           </button>
         </form>
 
-        <!-- Current Projects List -->
+        <!-- Project List -->
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-2">Saved Projects</label>
-          <div id="projectListContainer" class="divide-y divide-slate-100 border border-slate-200 rounded-xl max-h-56 overflow-y-auto">
-            <!-- Project list items -->
+          <label class="block text-xs font-bold text-slate-700 mb-2">Available Projects</label>
+          <div class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden max-h-56 overflow-y-auto" id="projectListContainer">
+            <!-- Populated via JS -->
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Email Notifications & 5 PM Daily Reminders -->
-  <div id="remindersModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform scale-95 transition-transform duration-200" id="remindersModalContainer">
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/60">
+  <!-- MODAL: Email Reminders -->
+  <div id="remindersModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto transform scale-95 transition-transform duration-200 modal-sheet-container" id="remindersModalContainer">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/60 sticky top-0 z-10">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
             <i data-lucide="bell-ring" class="w-4 h-4"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900">Email Notifications</h3>
-            <p class="text-[11px] text-amber-700 font-semibold">Auto Reminders: Mon – Sat at 5:00 PM</p>
+            <h3 class="text-base font-bold text-slate-900">5:00 PM Auto Notifications</h3>
+            <p class="text-[11px] text-amber-800 font-medium">Mon - Sat Daily Email Reminders</p>
           </div>
         </div>
-        <button id="closeRemindersModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+        <button id="closeRemindersModalBtn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-        <!-- Schedule Status Banner -->
-        <div class="p-3 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-transparent border border-amber-200 rounded-xl flex items-start gap-3">
-          <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-            <i data-lucide="clock" class="w-4 h-4"></i>
-          </div>
-          <div class="text-xs">
-            <h4 class="font-bold text-slate-900">Automated Daily Dispatch</h4>
-            <p class="text-slate-600 mt-0.5">Every <strong>Monday to Saturday at 5:00 PM (17:00)</strong>, an automated reminder is sent to all members with their logged work summary and log link.</p>
-          </div>
+      <div class="p-5 sm:p-6 space-y-4">
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-xs text-amber-900 space-y-1">
+          <p class="font-bold flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600"></i>
+            Schedule: Monday to Saturday at 5:00 PM
+          </p>
+          <p class="text-slate-600 text-[11px]">
+            Every team member will automatically receive an email reminding them to log their daily tasks.
+          </p>
         </div>
 
-        <!-- Team Member Email Addresses Form -->
+        <!-- Member Email List Configuration -->
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">Member Email Addresses</label>
-          <div class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200" id="memberEmailsList">
-            <!-- Dynamically populated per member -->
+          <div class="space-y-2 max-h-48 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50/50" id="memberEmailsList">
+            <!-- Dynamically populated -->
           </div>
         </div>
 
-        <!-- SMTP / Sender Setup -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-2">Sender Mail Settings (SMTP)</label>
-          <div class="space-y-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-            <div>
-              <span class="text-[11px] font-semibold text-slate-600">Sender Email (e.g. Gmail / Company)</span>
-              <input type="email" id="smtpSenderEmail" placeholder="your-email@gmail.com" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <span class="text-[11px] font-semibold text-slate-600">App Password / API Key</span>
-                <input type="password" id="smtpPassword" placeholder="App Password" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
-              </div>
-              <div>
-                <span class="text-[11px] font-semibold text-slate-600">SMTP Host</span>
-                <input type="text" id="smtpHost" value="smtp.gmail.com" placeholder="smtp.gmail.com" class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
-              </div>
-            </div>
+        <!-- SMTP Sender Credentials -->
+        <div class="space-y-2.5 pt-2 border-t border-slate-100">
+          <label class="block text-xs font-bold text-slate-700">Sender Email & Credentials (Gmail SMTP)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input 
+              type="email" 
+              id="smtpSenderEmail" 
+              placeholder="sender@gmail.com" 
+              class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+            >
+            <input 
+              type="password" 
+              id="smtpPassword" 
+              placeholder="Gmail App Password" 
+              class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium"
+            >
           </div>
+          <input type="hidden" id="smtpHost" value="smtp.gmail.com">
+          <p class="text-[10px] text-slate-400">
+            Use a Google App Password from your Google Account security settings.
+          </p>
         </div>
 
-        <!-- Dispatch Feedback Banner -->
-        <div id="reminderStatusAlert" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+        <!-- Status message -->
+        <div id="reminderStatusAlert" class="hidden p-3 rounded-xl text-xs font-semibold">
           <span id="reminderStatusText"></span>
         </div>
 
-        <!-- Modal Actions -->
-        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-          <button type="button" id="testSendReminderBtn" class="px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="send" class="w-3.5 h-3.5"></i>
-            <span>Send Test Email Now</span>
+        <!-- Buttons -->
+        <div class="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
+          <button type="button" id="testSendReminderBtn" class="px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i> Send Test Email Now
           </button>
-          
           <button type="button" id="saveReminderSettingsBtn" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
             Save Settings
           </button>
@@ -621,194 +707,165 @@
     </div>
   </div>
 
-  <!-- MODAL: User Profile & PIN Settings -->
-  <div id="userSettingsModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200" id="userSettingsModalContainer">
-      <!-- Header -->
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+  <!-- MODAL: User Profile & Security Settings -->
+  <div id="userSettingsModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto transform scale-95 transition-transform duration-200 modal-sheet-container" id="userSettingsModalContainer">
+      <div class="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <i data-lucide="user-cog" class="w-4 h-4"></i>
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
           </div>
-          <div>
-            <h3 class="text-base font-bold text-slate-900">Profile & Security Settings</h3>
-            <p class="text-[11px] text-slate-500 font-medium" id="settingsUserRoleLabel">Manage your personal PIN and preferences</p>
-          </div>
+          <h3 class="text-base font-bold text-slate-900">User Profile & PIN</h3>
         </div>
-        <button id="closeUserSettingsModalBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+        <button id="closeUserSettingsModalBtn" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <!-- Settings Form -->
-      <form id="userSettingsForm" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-        <!-- User Info Card -->
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-3">
+      <form id="userSettingsForm" class="p-5 sm:p-6 space-y-4">
+        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
           <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs" id="settingsAvatarBadge">
             S
           </div>
           <div>
-            <h4 class="font-bold text-slate-900 text-sm" id="settingsUserNameDisplay">Srijith</h4>
-            <span class="text-[11px] text-emerald-600 font-semibold bg-emerald-100 px-2 py-0.5 rounded-md" id="settingsRoleBadge">Admin Member</span>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-900" id="settingsUserNameDisplay">Srijith</h4>
+              <span class="px-2 py-0.2 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800" id="settingsRoleBadge">Member</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-medium" id="settingsUserRoleLabel">Account Security Settings</p>
           </div>
         </div>
 
-        <!-- Notification Email -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1.5">Your Notification Email</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Notification Email</label>
           <input 
             type="email" 
             id="settingsUserEmailInput" 
-            placeholder="your-email@example.com" 
-            required 
-            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+            placeholder="your-name@example.com" 
+            class="w-full px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
           >
         </div>
 
-        <!-- Change Password / PIN Section -->
-        <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-200/70 space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="block text-xs font-bold text-amber-950 flex items-center gap-1.5">
-              <i data-lucide="key" class="w-3.5 h-3.5 text-amber-600"></i>
-              <span>Change Login PIN</span>
-            </label>
-            <span class="text-[10px] text-amber-800 font-medium">4 to 6 digits</span>
-          </div>
-
+        <div class="space-y-3 pt-2 border-t border-slate-100">
+          <label class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i data-lucide="key-round" class="w-3.5 h-3.5 text-emerald-600"></i> Change Login PIN
+          </label>
+          
           <div>
-            <span class="text-[11px] font-semibold text-slate-600">Current PIN *</span>
+            <span class="text-[11px] text-slate-500 font-medium">Current PIN</span>
             <input 
               type="password" 
               id="settingsCurrentPin" 
               placeholder="Enter current PIN" 
               maxlength="6"
-              class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+              class="w-full mt-1 px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium tracking-widest"
             >
           </div>
 
           <div class="grid grid-cols-2 gap-2.5">
             <div>
-              <span class="text-[11px] font-semibold text-slate-600">New PIN *</span>
+              <span class="text-[11px] text-slate-500 font-medium">New PIN (4+ digits)</span>
               <input 
                 type="password" 
                 id="settingsNewPin" 
-                placeholder="New 4-digit PIN" 
+                placeholder="New PIN" 
                 maxlength="6"
-                class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+                class="w-full mt-1 px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium tracking-widest"
               >
             </div>
             <div>
-              <span class="text-[11px] font-semibold text-slate-600">Confirm New PIN *</span>
+              <span class="text-[11px] text-slate-500 font-medium">Confirm New PIN</span>
               <input 
                 type="password" 
                 id="settingsConfirmPin" 
-                placeholder="Confirm PIN" 
+                placeholder="Confirm" 
                 maxlength="6"
-                class="w-full mt-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-medium text-center"
+                class="w-full mt-1 px-3 py-2 text-sm sm:text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium tracking-widest"
               >
             </div>
           </div>
         </div>
 
-        <!-- Avatar Color Palette -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-2">Profile Color Theme</label>
-          <div class="flex items-center gap-3" id="settingsColorPalette">
-            <button type="button" data-color="bg-emerald-600" class="theme-color-btn w-7 h-7 rounded-xl bg-emerald-600 cursor-pointer ring-2 ring-emerald-600/30 transition-all" title="Emerald"></button>
-            <button type="button" data-color="bg-indigo-600" class="theme-color-btn w-7 h-7 rounded-xl bg-indigo-600 cursor-pointer hover:scale-105 transition-all" title="Indigo"></button>
-            <button type="button" data-color="bg-sky-500" class="theme-color-btn w-7 h-7 rounded-xl bg-sky-500 cursor-pointer hover:scale-105 transition-all" title="Sky Blue"></button>
-            <button type="button" data-color="bg-rose-600" class="theme-color-btn w-7 h-7 rounded-xl bg-rose-600 cursor-pointer hover:scale-105 transition-all" title="Rose"></button>
-            <button type="button" data-color="bg-amber-600" class="theme-color-btn w-7 h-7 rounded-xl bg-amber-600 cursor-pointer hover:scale-105 transition-all" title="Amber"></button>
-            <button type="button" data-color="bg-purple-600" class="theme-color-btn w-7 h-7 rounded-xl bg-purple-600 cursor-pointer hover:scale-105 transition-all" title="Purple"></button>
-            <button type="button" data-color="bg-teal-600" class="theme-color-btn w-7 h-7 rounded-xl bg-teal-600 cursor-pointer hover:scale-105 transition-all" title="Teal"></button>
+        <!-- Avatar Theme Color Selector -->
+        <div class="pt-2 border-t border-slate-100">
+          <label class="block text-xs font-bold text-slate-700 mb-2">Avatar Theme Color</label>
+          <div class="flex items-center gap-2 flex-wrap" id="themeColorPicker">
+            <button type="button" data-color="bg-emerald-600" class="theme-color-btn w-7 h-7 rounded-full bg-emerald-600 ring-2 ring-transparent cursor-pointer transition-all"></button>
+            <button type="button" data-color="bg-indigo-600" class="theme-color-btn w-7 h-7 rounded-full bg-indigo-600 ring-2 ring-transparent cursor-pointer transition-all"></button>
+            <button type="button" data-color="bg-sky-500" class="theme-color-btn w-7 h-7 rounded-full bg-sky-500 ring-2 ring-transparent cursor-pointer transition-all"></button>
+            <button type="button" data-color="bg-amber-600" class="theme-color-btn w-7 h-7 rounded-full bg-amber-600 ring-2 ring-transparent cursor-pointer transition-all"></button>
+            <button type="button" data-color="bg-purple-600" class="theme-color-btn w-7 h-7 rounded-full bg-purple-600 ring-2 ring-transparent cursor-pointer transition-all"></button>
+            <button type="button" data-color="bg-teal-600" class="theme-color-btn w-7 h-7 rounded-full bg-teal-600 ring-2 ring-transparent cursor-pointer transition-all"></button>
           </div>
         </div>
 
-        <!-- Feedback Alert Banner -->
-        <div id="settingsFeedbackAlert" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+        <div id="settingsFeedbackAlert" class="hidden p-3 rounded-xl text-xs font-semibold">
           <span id="settingsFeedbackText"></span>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-          <button type="button" id="cancelUserSettingsBtn" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <button type="button" id="cancelUserSettingsBtn" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer">
             Cancel
           </button>
-          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
-            Save Changes
+          <button type="submit" class="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
+            Save Profile
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- FULL SCREEN LOGIN OVERLAY -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300">
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6 transform transition-all scale-100 animate-in fade-in zoom-in-95">
-      
-      <!-- Login Header -->
-      <div class="text-center space-y-2">
-        <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-600/30">
+  <!-- AUTH / LOGIN OVERLAY (PIN Protected) -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-4 hidden">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-8 space-y-6 text-center">
+      <div>
+        <div class="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 mx-auto mb-3">
           <i data-lucide="lock" class="w-7 h-7"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-900">Member Sign In</h2>
-        <p class="text-xs text-slate-500 font-medium">Select your name and enter your PIN to access your workspace</p>
+        <h2 class="text-xl font-extrabold text-slate-900">Work Log Tracker</h2>
+        <p class="text-xs text-slate-500 mt-1 font-medium">Select your account and enter PIN to access your logs</p>
       </div>
 
-      <!-- Member Grid Selection -->
-      <div class="space-y-3">
-        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Member</label>
-        <div class="grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto p-1 scrollbar-thin" id="loginUserGrid">
-          <!-- Populated dynamically with member cards -->
+      <!-- Member Selector Grid -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-slate-700 text-left">Who is logging in?</label>
+        <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1" id="loginUserGrid">
+          <!-- Dynamically filled with users -->
         </div>
       </div>
 
       <!-- PIN Input Form -->
-      <form id="loginForm" class="space-y-4 pt-2">
-        <input type="hidden" id="loginSelectedUser">
-
+      <form id="loginForm" class="space-y-4">
+        <input type="hidden" id="loginSelectedUser" value="">
+        
         <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-700">Security PIN *</label>
-          </div>
+          <label class="block text-xs font-bold text-slate-700 text-left mb-1.5">Enter Security PIN</label>
           <div class="relative">
-            <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
             <input 
               type="password" 
               id="loginPinInput" 
-              placeholder="Enter PIN..." 
-              required
-              maxlength="6"
-              class="w-full pl-9 pr-3 py-2.5 text-sm font-bold tracking-widest bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-slate-800"
+              placeholder="••••" 
+              maxlength="6" 
+              required 
+              class="w-full text-center text-xl sm:text-2xl font-extrabold tracking-widest px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:bg-white focus:outline-hidden focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all text-slate-800"
             >
           </div>
+          <p id="loginErrorMsg" class="hidden text-xs text-rose-600 font-bold mt-2 flex items-center justify-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> <span id="loginErrorText">Incorrect PIN entered</span>
+          </p>
         </div>
 
-        <!-- Error Message Banner -->
-        <div id="loginErrorMsg" class="hidden p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
-          <span id="loginErrorText">Incorrect PIN entered.</span>
-        </div>
-
-        <!-- Submit Button -->
-        <button 
-          type="submit" 
-          id="loginSubmitBtn"
-          class="w-full py-3 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <i data-lucide="log-in" class="w-4 h-4"></i>
-          <span>Continue to Work Log</span>
+        <button type="submit" class="w-full py-3.5 px-4 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 rounded-2xl shadow-lg shadow-emerald-600/25 transition-all cursor-pointer flex items-center justify-center gap-2">
+          <span>Unlock Dashboard</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
         </button>
       </form>
 
-      <!-- Quick Footer in Login Screen -->
-      <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-        <button type="button" id="loginAddMemberBtn" class="text-slate-600 hover:text-emerald-600 font-bold hover:underline flex items-center gap-1 cursor-pointer">
-          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-          <span>Add New Member</span>
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+        <span>Team Workspace</span>
+        <button type="button" id="loginAddMemberBtn" class="text-emerald-600 hover:underline font-bold cursor-pointer">
+          + Add New Member
         </button>
-        <span>Protected Workspace</span>
       </div>
     </div>
   </div>
