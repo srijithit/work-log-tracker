@@ -688,30 +688,24 @@ function renderUserTabs() {
 
   const currentMonthTasks = tasks.filter(t => selectedMonth === 'ALL' || (t.date && t.date.startsWith(selectedMonth)));
 
-  // "All Members" tab
-  const allBtn = document.createElement('button');
-  allBtn.className = `user-tab-btn shrink-0 px-3 py-1.5 text-xs font-bold rounded-xl cursor-pointer transition-all ${
-    selectedUser === 'ALL' ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-  }`;
-  allBtn.innerHTML = `<span>👥 All</span> <span class="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-slate-200/60 ${selectedUser === 'ALL' ? 'text-slate-900 bg-white' : ''}">${currentMonthTasks.length}</span>`;
-  allBtn.addEventListener('click', () => {
-    selectedUser = 'ALL';
-    renderAll();
-  });
-  userTabsContainer.appendChild(allBtn);
+  // If selectedUser is 'ALL' or invalid, default to logged in user or first member
+  if (selectedUser === 'ALL' || !users.some(u => u.name === selectedUser)) {
+    selectedUser = currentLoggedInUser ? currentLoggedInUser.name : (users[0] ? users[0].name : '');
+  }
 
-  // Individual user tabs
+  // Individual user tabs only (All button hidden)
   users.forEach(user => {
     const userTaskCount = currentMonthTasks.filter(t => t.user === user.name).length;
     const isCurrentUser = currentLoggedInUser && currentLoggedInUser.name === user.name;
+    const isSelected = selectedUser === user.name;
     const btn = document.createElement('button');
     btn.className = `user-tab-btn shrink-0 px-3 py-1.5 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center gap-1.5 ${
-      selectedUser === user.name ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+      isSelected ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
     }`;
     btn.innerHTML = `
       <span class="w-2 h-2 rounded-full ${user.color || 'bg-emerald-500'} inline-block shrink-0"></span>
       <span>${escapeHtml(user.name)} ${isCurrentUser ? '<strong class="text-[10px] text-emerald-400 ml-0.5">(You)</strong>' : ''}</span>
-      <span class="px-1.5 py-0.2 text-[10px] rounded-full ${selectedUser === user.name ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}">${userTaskCount}</span>
+      <span class="px-1.5 py-0.2 text-[10px] rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}">${userTaskCount}</span>
     `;
     btn.addEventListener('click', () => {
       selectedUser = user.name;
