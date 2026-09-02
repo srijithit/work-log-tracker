@@ -21,10 +21,11 @@ const CURRENT_MONTH = getCurrentYearMonth();
 
 // Default Team Members with PINs and Emails
 const DEFAULT_USERS = [
-  { name: 'Srijith', email: 'srijith@example.com', pin: '1234', role: 'admin', color: 'bg-emerald-600', phone: '' },
-  { name: 'Sri mathi', email: 'srimathi@example.com', pin: '1234', role: 'member', color: 'bg-indigo-600', phone: '' },
-  { name: 'Akila', email: 'akila@example.com', pin: '1234', role: 'member', color: 'bg-sky-500', phone: '' },
-  { name: 'Jayaraj', email: 'jayaraj@example.com', pin: '1234', role: 'member', color: 'bg-amber-600', phone: '' }
+  { name: 'Admin', email: 'admin@dhigrowth.com', pin: '1234', role: 'admin', color: 'bg-slate-900', phone: '' },
+  { name: 'Srijith', email: 'srijith@dhigrowth.com', pin: '1234', role: 'member', color: 'bg-emerald-600', phone: '' },
+  { name: 'Sri mathi', email: 'srimathi@dhigrowth.com', pin: '1234', role: 'member', color: 'bg-indigo-600', phone: '' },
+  { name: 'Akila', email: 'akila@dhigrowth.com', pin: '1234', role: 'member', color: 'bg-sky-500', phone: '' },
+  { name: 'Jayaraj', email: 'jayaraj@dhigrowth.com', pin: '1234', role: 'member', color: 'bg-amber-600', phone: '' }
 ];
 
 // Default Projects
@@ -277,13 +278,26 @@ function loadLocalData() {
   if (savedUsers) {
     try {
       users = JSON.parse(savedUsers);
-      users = users.map((u, i) => {
+      
+      // Ensure separate dedicated Admin account exists
+      const hasAdmin = users.some(u => (u.name && u.name.toLowerCase() === 'admin'));
+      if (!hasAdmin) {
+        users.unshift({ name: 'Admin', email: 'admin@dhigrowth.com', pin: '1234', role: 'admin', color: 'bg-slate-900', phone: '' });
+      }
+
+      users = users.map((u) => {
         if (typeof u === 'string') {
-          const colors = ['bg-emerald-600', 'bg-indigo-600', 'bg-sky-500', 'bg-amber-600', 'bg-purple-600'];
-          return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@example.com`, pin: '1234', role: i === 0 ? 'admin' : 'member', color: colors[i % colors.length], phone: '' };
+          return { name: u, email: `${u.toLowerCase().replace(/\s+/g, '')}@dhigrowth.com`, pin: '1234', role: u.toLowerCase() === 'admin' ? 'admin' : 'member', color: u.toLowerCase() === 'admin' ? 'bg-slate-900' : 'bg-emerald-600', phone: '' };
+        }
+        if (u.name.toLowerCase() === 'srijith') {
+          u.role = 'member'; // Srijith is a regular team member
+        }
+        if (u.name.toLowerCase() === 'admin') {
+          u.role = 'admin'; // Admin is the dedicated administrator
+          u.color = 'bg-slate-900';
         }
         if (!u.email) {
-          u.email = `${u.name.toLowerCase().replace(/\s+/g, '')}@example.com`;
+          u.email = `${u.name.toLowerCase().replace(/\s+/g, '')}@dhigrowth.com`;
         }
         if (u.name.toLowerCase() === 'akila' && (u.color === 'bg-rose-600' || !u.color)) {
           u.color = 'bg-sky-500';
@@ -524,16 +538,16 @@ function setLoggedInUser(user) {
 
   const isAdmin = user.role === 'admin';
 
-  // Toggle Admin-only controls (Members & Projects for Admin only)
+  // Member & Reminder Management is for Admin only
   if (addUserBtn) addUserBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (manageProjectsBtn) manageProjectsBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (openRemindersBtn) openRemindersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-
   if (mobileAddUserBtn) mobileAddUserBtn.style.display = isAdmin ? 'flex' : 'none';
-  if (mobileManageProjectsBtn) mobileManageProjectsBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (openRemindersBtn) openRemindersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
   if (mobileOpenRemindersBtn) mobileOpenRemindersBtn.style.display = isAdmin ? 'flex' : 'none';
 
-  if (quickAddProjectBtn) quickAddProjectBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  // Projects are accessible and addable by ALL users
+  if (manageProjectsBtn) manageProjectsBtn.style.display = 'inline-flex';
+  if (mobileManageProjectsBtn) mobileManageProjectsBtn.style.display = 'flex';
+  if (quickAddProjectBtn) quickAddProjectBtn.style.display = 'inline-flex';
 
   // Update Desktop and Mobile User Avatars
   if (headerUserName) headerUserName.textContent = `${user.name} ${isAdmin ? '👑' : ''}`;
@@ -1376,12 +1390,8 @@ function closeUserModal() {
   }, 200);
 }
 
-// Open Project Modal (Admin Only)
+// Open Project Modal (All users can view and add projects)
 function openProjectModal() {
-  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
-    alert("🔒 Access Denied: Only Administrators can manage projects.");
-    return;
-  }
   projectModal.classList.remove('hidden');
   setTimeout(() => {
     projectModal.classList.remove('opacity-0');
@@ -1818,13 +1828,9 @@ window.deleteUser = function(userName) {
   }
 };
 
-// Add Project (Admin Only)
+// Add Project (All users can add projects)
 addProjectForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
-    alert("🔒 Access Denied: Only Administrators can add new projects.");
-    return;
-  }
   const name = newProjectNameInput.value.trim().toUpperCase();
   if (name && !projects.includes(name)) {
     projects.push(name);
