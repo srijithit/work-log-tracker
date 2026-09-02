@@ -538,11 +538,13 @@ function setLoggedInUser(user) {
 
   const isAdmin = user.role === 'admin';
 
-  // Member & Reminder Management is for Admin only
+  // Member Management is for Admin only
   if (addUserBtn) addUserBtn.style.display = isAdmin ? 'inline-flex' : 'none';
   if (mobileAddUserBtn) mobileAddUserBtn.style.display = isAdmin ? 'flex' : 'none';
-  if (openRemindersBtn) openRemindersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (mobileOpenRemindersBtn) mobileOpenRemindersBtn.style.display = isAdmin ? 'flex' : 'none';
+
+  // Reminders & 5 PM Alerts are accessible to EVERYONE
+  if (openRemindersBtn) openRemindersBtn.style.display = 'inline-flex';
+  if (mobileOpenRemindersBtn) mobileOpenRemindersBtn.style.display = 'flex';
 
   // Projects are accessible and addable by ALL users
   if (manageProjectsBtn) manageProjectsBtn.style.display = 'inline-flex';
