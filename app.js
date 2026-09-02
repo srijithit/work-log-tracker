@@ -471,12 +471,16 @@ function renderLoginUserGrid() {
         : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
     }`;
     
+    const isAdmin = user.role === 'admin';
     card.innerHTML = `
       <div class="w-9 h-9 rounded-xl ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
         ${user.name.charAt(0).toUpperCase()}
       </div>
-      <div class="truncate text-left">
-        <span class="text-xs font-bold text-slate-800 block truncate">${escapeHtml(user.name)}</span>
+      <div class="truncate text-left flex-1">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold text-slate-800 truncate">${escapeHtml(user.name)}</span>
+          ${isAdmin ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-100 text-amber-800 shrink-0">👑 Admin</span>' : '<span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-200 text-slate-600 shrink-0">Member</span>'}
+        </div>
         <span class="text-[10px] text-slate-400 font-medium block truncate">${escapeHtml(user.email || 'No email')}</span>
       </div>
     `;
@@ -518,8 +522,21 @@ function setLoggedInUser(user) {
 
   loginOverlay.classList.add('hidden');
 
+  const isAdmin = user.role === 'admin';
+
+  // Toggle Admin-only controls (Members & Projects for Admin only)
+  if (addUserBtn) addUserBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (manageProjectsBtn) manageProjectsBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (openRemindersBtn) openRemindersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
+  if (mobileAddUserBtn) mobileAddUserBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (mobileManageProjectsBtn) mobileManageProjectsBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (mobileOpenRemindersBtn) mobileOpenRemindersBtn.style.display = isAdmin ? 'flex' : 'none';
+
+  if (quickAddProjectBtn) quickAddProjectBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
   // Update Desktop and Mobile User Avatars
-  if (headerUserName) headerUserName.textContent = user.name;
+  if (headerUserName) headerUserName.textContent = `${user.name} ${isAdmin ? '👑' : ''}`;
   if (headerUserAvatar) {
     headerUserAvatar.textContent = user.name.charAt(0).toUpperCase();
     headerUserAvatar.className = `w-6 h-6 rounded-full ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
@@ -533,7 +550,7 @@ function setLoggedInUser(user) {
     drawerUserAvatar.className = `w-8 h-8 rounded-xl ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-xs shadow-xs`;
   }
   if (drawerUserName) {
-    drawerUserName.textContent = user.name;
+    drawerUserName.textContent = `${user.name} (${isAdmin ? 'Admin' : 'Member'})`;
   }
 
   selectedUser = user.name;
@@ -682,21 +699,37 @@ function setViewMode(mode) {
   updateViewModeDisplay();
 }
 
-// Render User Filter Tabs (Strict Privacy: Regular users only see their own tab; Admin can view team)
+// Render User Filter Tabs (Admin can see All Team & individual tabs; Regular members only see their own tab)
 function renderUserTabs() {
   userTabsContainer.innerHTML = '';
 
   const currentMonthTasks = tasks.filter(t => selectedMonth === 'ALL' || (t.date && t.date.startsWith(selectedMonth)));
   const isAdmin = currentLoggedInUser && currentLoggedInUser.role === 'admin';
 
-  // For non-admin members, strictly lock selectedUser to their own name
   if (!isAdmin && currentLoggedInUser) {
     selectedUser = currentLoggedInUser.name;
-  } else if (selectedUser === 'ALL' || !users.some(u => u.name === selectedUser)) {
+  } else if (selectedUser !== 'ALL' && !users.some(u => u.name === selectedUser)) {
     selectedUser = currentLoggedInUser ? currentLoggedInUser.name : (users[0] ? users[0].name : '');
   }
 
-  // Non-admin members only see their own tab; Admin sees all team member tabs
+  // If Admin is logged in, show "All Team" tab first to access and review all logs
+  if (isAdmin) {
+    const allBtn = document.createElement('button');
+    allBtn.className = `user-tab-btn shrink-0 px-3.5 py-1.5 text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-1.5 ${
+      selectedUser === 'ALL' ? 'active' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+    }`;
+    allBtn.innerHTML = `
+      <span>👥 All Team Logs</span>
+      <span class="px-1.5 py-0.2 text-[10px] rounded-full ${selectedUser === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}">${currentMonthTasks.length}</span>
+    `;
+    allBtn.addEventListener('click', () => {
+      selectedUser = 'ALL';
+      renderAll();
+    });
+    userTabsContainer.appendChild(allBtn);
+  }
+
+  // Determine list of users to display tabs for
   const visibleUsers = isAdmin ? users : (currentLoggedInUser ? [currentLoggedInUser] : users);
 
   visibleUsers.forEach(user => {
@@ -1320,8 +1353,12 @@ function closeTaskModal() {
   }, 200);
 }
 
-// Open User Modal
+// Open User Modal (Admin Only)
 function openUserModal() {
+  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
+    alert("🔒 Access Denied: Only Administrators can manage team members.");
+    return;
+  }
   userModal.classList.remove('hidden');
   setTimeout(() => {
     userModal.classList.remove('opacity-0');
@@ -1339,8 +1376,12 @@ function closeUserModal() {
   }, 200);
 }
 
-// Open Project Modal
+// Open Project Modal (Admin Only)
 function openProjectModal() {
+  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
+    alert("🔒 Access Denied: Only Administrators can manage projects.");
+    return;
+  }
   projectModal.classList.remove('hidden');
   setTimeout(() => {
     projectModal.classList.remove('opacity-0');
@@ -1724,9 +1765,13 @@ userSettingsForm.addEventListener('submit', (e) => {
   }, 1000);
 });
 
-// Add User Form Submission
+// Add User Form Submission (Admin Only)
 addUserForm.addEventListener('submit', (e) => {
   e.preventDefault();
+  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
+    alert("🔒 Access Denied: Only Administrators can add new team members.");
+    return;
+  }
   const name = newUserNameInput.value.trim();
   const email = newUserEmailInput ? newUserEmailInput.value.trim() : `${name.toLowerCase().replace(/\s+/g, '')}@example.com`;
   const pin = newUserPinInput.value.trim() || '1234';
@@ -1752,8 +1797,12 @@ addUserForm.addEventListener('submit', (e) => {
   }
 });
 
-// Delete User
+// Delete User (Admin Only)
 window.deleteUser = function(userName) {
+  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
+    alert("🔒 Access Denied: Only Administrators can remove team members.");
+    return;
+  }
   if (confirm(`Remove member "${userName}"? Existing tasks for this user will remain.`)) {
     users = users.filter(u => u.name !== userName);
     if (currentLoggedInUser && currentLoggedInUser.name === userName) {
@@ -1769,9 +1818,13 @@ window.deleteUser = function(userName) {
   }
 };
 
-// Add Project
+// Add Project (Admin Only)
 addProjectForm.addEventListener('submit', (e) => {
   e.preventDefault();
+  if (!currentLoggedInUser || currentLoggedInUser.role !== 'admin') {
+    alert("🔒 Access Denied: Only Administrators can add new projects.");
+    return;
+  }
   const name = newProjectNameInput.value.trim().toUpperCase();
   if (name && !projects.includes(name)) {
     projects.push(name);
