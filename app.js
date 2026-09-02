@@ -1,11 +1,11 @@
-// Work Log Tracker Application Logic with Vercel Blob Cloud Sync, Client-side DHIGROWTH DOCX Export, PIN Security & User Settings
+// Work Log Tracker Application Logic with Vercel Blob Cloud Sync, Client-side DHIGROWTH DOCX Export, In-Progress / Completed Status, PIN Security & User Settings
 
 // Storage Keys
-const STORAGE_KEY_TASKS = 'work_tracker_tasks_v6';
-const STORAGE_KEY_USERS = 'work_tracker_users_v6';
-const STORAGE_KEY_PROJECTS = 'work_tracker_projects_v6';
-const STORAGE_KEY_SESSION = 'work_tracker_session_v6';
-const STORAGE_KEY_REMINDER_CFG = 'work_tracker_reminder_cfg_v6';
+const STORAGE_KEY_TASKS = 'work_tracker_tasks_v7';
+const STORAGE_KEY_USERS = 'work_tracker_users_v7';
+const STORAGE_KEY_PROJECTS = 'work_tracker_projects_v7';
+const STORAGE_KEY_SESSION = 'work_tracker_session_v7';
+const STORAGE_KEY_REMINDER_CFG = 'work_tracker_reminder_cfg_v7';
 
 // Helper: Get Current Year-Month String (e.g. "2026-09")
 function getCurrentYearMonth() {
@@ -47,7 +47,8 @@ const DEFAULT_TASKS = [
     endTime: '18:30',
     workTimeFormatted: '10 AM TO 6:30 PM',
     hours: 8.5,
-    projectName: 'DHIGROWTH & TITAN STAY/NEST PILOT'
+    projectName: 'DHIGROWTH & TITAN STAY/NEST PILOT',
+    status: 'Fully Completed'
   },
   {
     id: 'task-init-2',
@@ -58,7 +59,8 @@ const DEFAULT_TASKS = [
     endTime: '18:30',
     workTimeFormatted: '10 AM TO 6:30 PM',
     hours: 8.5,
-    projectName: 'DHIGROWTH'
+    projectName: 'DHIGROWTH',
+    status: 'Fully Completed'
   },
   {
     id: 'task-init-3',
@@ -69,7 +71,8 @@ const DEFAULT_TASKS = [
     endTime: '18:30',
     workTimeFormatted: '10 AM TO 6:30 PM',
     hours: 8.5,
-    projectName: 'TITAN STAY/NEST PILOT'
+    projectName: 'TITAN STAY/NEST PILOT',
+    status: 'In Progress'
   },
   {
     id: 'task-init-4',
@@ -80,7 +83,8 @@ const DEFAULT_TASKS = [
     endTime: '18:30',
     workTimeFormatted: '10 AM TO 6:30 PM',
     hours: 8.5,
-    projectName: 'DHIGROWTH & TITAN STAY/NEST PILOT'
+    projectName: 'DHIGROWTH & TITAN STAY/NEST PILOT',
+    status: 'Fully Completed'
   }
 ];
 
@@ -100,6 +104,7 @@ let selectedUser = 'ALL'; // 'ALL' or specific user name
 let selectedMonth = CURRENT_MONTH; // Auto-defaults to current month (e.g. "2026-09")
 let searchQuery = '';
 let selectedProject = '';
+let selectedStatus = ''; // '' = All, 'Fully Completed', 'In Progress'
 let selectedUserThemeColor = 'bg-emerald-600';
 let isSyncingWithCloud = false;
 
@@ -115,6 +120,7 @@ const currentViewTitle = document.getElementById('currentViewTitle');
 const filteredCountBadge = document.getElementById('filteredCountBadge');
 const searchInput = document.getElementById('searchInput');
 const projectFilterSelect = document.getElementById('projectFilterSelect');
+const statusFilterSelect = document.getElementById('statusFilterSelect');
 const projectDatalist = document.getElementById('projectDatalist');
 const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
@@ -133,6 +139,8 @@ const headerUserAvatar = document.getElementById('headerUserAvatar');
 // Stats Elements
 const statTotalEntries = document.getElementById('statTotalEntries');
 const statTotalHours = document.getElementById('statTotalHours');
+const statCompletedTasks = document.getElementById('statCompletedTasks');
+const statInProgressTasks = document.getElementById('statInProgressTasks');
 const statActiveProjects = document.getElementById('statActiveProjects');
 const statTotalUsers = document.getElementById('statTotalUsers');
 
@@ -149,6 +157,8 @@ const quickAddProjectBtn = document.getElementById('quickAddProjectBtn');
 const taskStartTimeInput = document.getElementById('taskStartTime');
 const taskEndTimeInput = document.getElementById('taskEndTime');
 const taskDescInput = document.getElementById('taskDesc');
+const statusCompletedRadio = document.getElementById('statusCompletedRadio');
+const statusInProgressRadio = document.getElementById('statusInProgressRadio');
 const calcHoursBadge = document.getElementById('calcHoursBadge');
 const openAddTaskModalBtn = document.getElementById('openAddTaskModalBtn');
 const closeTaskModalBtn = document.getElementById('closeTaskModalBtn');
@@ -225,7 +235,7 @@ function initApp() {
   setupEventListeners();
   checkAuthSession();
   setupClientSideReminderCheck();
-  loadCloudData(); // Sync with Vercel Blob / Cloud Storage
+  loadCloudData();
 }
 
 // Load data from LocalStorage
@@ -259,7 +269,20 @@ function loadLocalData() {
   }
 
   projects = savedProjects ? JSON.parse(savedProjects) : [...DEFAULT_PROJECTS];
-  tasks = savedTasks ? JSON.parse(savedTasks) : [...DEFAULT_TASKS];
+  
+  if (savedTasks) {
+    try {
+      tasks = JSON.parse(savedTasks).map(t => {
+        if (!t.status) t.status = 'Fully Completed';
+        return t;
+      });
+    } catch {
+      tasks = [...DEFAULT_TASKS];
+    }
+  } else {
+    tasks = [...DEFAULT_TASKS];
+  }
+
   if (savedCfg) {
     reminderConfig = { ...reminderConfig, ...JSON.parse(savedCfg) };
   }
@@ -303,17 +326,14 @@ function loadCloudData() {
     .then(res => {
       if (res && res.data) {
         const cloudData = res.data;
-        let hasChanges = false;
 
-        // Merge users (ensure all cloud members exist locally)
+        // Merge users
         if (Array.isArray(cloudData.users) && cloudData.users.length > 0) {
           cloudData.users.forEach(cloudUser => {
             const existingIdx = users.findIndex(u => u.name.toLowerCase() === cloudUser.name.toLowerCase());
             if (existingIdx === -1) {
               users.push(cloudUser);
-              hasChanges = true;
             } else {
-              // Update email / pin / color if cloud has newer info
               users[existingIdx] = { ...users[existingIdx], ...cloudUser };
             }
           });
@@ -324,7 +344,6 @@ function loadCloudData() {
           cloudData.projects.forEach(p => {
             if (!projects.includes(p)) {
               projects.push(p);
-              hasChanges = true;
             }
           });
         }
@@ -332,10 +351,10 @@ function loadCloudData() {
         // Merge tasks
         if (Array.isArray(cloudData.tasks)) {
           cloudData.tasks.forEach(cTask => {
+            if (!cTask.status) cTask.status = 'Fully Completed';
             const tIdx = tasks.findIndex(t => t.id === cTask.id);
             if (tIdx === -1) {
               tasks.push(cTask);
-              hasChanges = true;
             } else {
               tasks[tIdx] = { ...tasks[tIdx], ...cTask };
             }
@@ -352,7 +371,6 @@ function loadCloudData() {
         renderLoginUserGrid();
         setCloudStatus(res.source === 'vercel-blob' ? 'Vercel Blob Synced' : 'Cloud Synced', 'text-emerald-600');
       } else {
-        // If cloud storage is empty, initialize cloud with local data
         syncToCloud();
       }
     })
@@ -416,7 +434,6 @@ function checkAuthSession() {
     }
   }
 
-  // Not authenticated -> Show Login Overlay
   showLoginScreen();
 }
 
@@ -481,7 +498,6 @@ function loginUser(userName, pin) {
     return;
   }
 
-  // Successfully Authenticated
   setLoggedInUser(user);
 }
 
@@ -491,15 +507,12 @@ function setLoggedInUser(user) {
   selectedUserThemeColor = user.color || 'bg-emerald-600';
   localStorage.setItem(STORAGE_KEY_SESSION, user.name);
 
-  // Hide login overlay
   loginOverlay.classList.add('hidden');
 
-  // Update Header User Profile
   headerUserName.textContent = user.name;
   headerUserAvatar.textContent = user.name.charAt(0).toUpperCase();
   headerUserAvatar.className = `w-6 h-6 rounded-full ${user.color || 'bg-emerald-600'} text-white flex items-center justify-center font-bold text-[11px] shadow-xs`;
 
-  // Default view to current user's work log
   selectedUser = user.name;
 
   renderAll();
@@ -699,19 +712,37 @@ function getFilteredTasks() {
       (task.user && task.user.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (task.date && task.date.includes(searchQuery));
     const matchesProject = !selectedProject || task.projectName === selectedProject;
+    const taskStatus = task.status || 'Fully Completed';
+    const matchesStatus = !selectedStatus || taskStatus === selectedStatus;
 
-    return matchesMonth && matchesUser && matchesSearch && matchesProject;
+    return matchesMonth && matchesUser && matchesSearch && matchesProject && matchesStatus;
   });
 }
 
-// Render Table Rows with Strict Ownership Protection
+// Quick toggle task status between In Progress and Fully Completed
+window.toggleTaskStatus = function(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  if (!currentLoggedInUser || task.user !== currentLoggedInUser.name) {
+    alert(`🔒 Access Denied: Only ${task.user} can update the status of this work record.`);
+    return;
+  }
+
+  const currentStatus = task.status || 'Fully Completed';
+  task.status = currentStatus === 'In Progress' ? 'Fully Completed' : 'In Progress';
+  saveData(true);
+  renderAll();
+};
+
+// Render Table Rows with Status Column & Strict Ownership Protection
 function renderTable() {
   const filtered = getFilteredTasks();
 
   filteredCountBadge.textContent = filtered.length;
   currentViewTitle.textContent = selectedUser === 'ALL' ? 'All Team Tasks' : `${selectedUser}'s Work Log`;
 
-  if (searchQuery || selectedProject || selectedMonth === 'ALL') {
+  if (searchQuery || selectedProject || selectedStatus || selectedMonth === 'ALL') {
     clearFiltersBtn.classList.remove('hidden');
   } else {
     clearFiltersBtn.classList.add('hidden');
@@ -734,6 +765,11 @@ function renderTable() {
     const hrsDisplay = task.hours ? `${task.hours} hrs` : `${calculateHours(task.startTime, task.endTime)} hrs`;
     const userObj = users.find(u => u.name === task.user);
     const isOwner = currentLoggedInUser && task.user === currentLoggedInUser.name;
+    const isCompleted = (task.status || 'Fully Completed') === 'Fully Completed';
+
+    const statusBadge = isCompleted
+      ? `<button onclick="toggleTaskStatus('${task.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-extrabold cursor-pointer hover:bg-emerald-100 transition-all shadow-2xs" title="${isOwner ? 'Click to toggle status' : 'Fully Completed'}"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Fully Completed</button>`
+      : `<button onclick="toggleTaskStatus('${task.id}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-extrabold cursor-pointer hover:bg-amber-100 transition-all shadow-2xs animate-pulse" title="${isOwner ? 'Click to toggle status' : 'In Progress'}"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> In Progress</button>`;
 
     tr.innerHTML = `
       <td class="py-3 px-4 text-center font-bold text-slate-500 border-r border-slate-100">${index + 1}</td>
@@ -757,6 +793,9 @@ function renderTable() {
       </td>
       <td class="py-3 px-4 text-slate-700 font-bold border-r border-slate-100 uppercase text-[11px]">
         ${escapeHtml(task.projectName)}
+      </td>
+      <td class="py-3 px-3 text-center border-r border-slate-100 whitespace-nowrap">
+        ${statusBadge}
       </td>
       <td class="py-3 px-4 text-right pr-6 whitespace-nowrap">
         <div class="flex items-center justify-end gap-1">
@@ -796,7 +835,7 @@ function renderTable() {
   lucide.createIcons();
 }
 
-// Render Stats Cards
+// Render Stats Cards with Completed vs In Progress breakdown
 function renderStats() {
   const currentMonthTasks = tasks.filter(t => selectedMonth === 'ALL' || (t.date && t.date.startsWith(selectedMonth)));
   const currentTasks = selectedUser === 'ALL' ? currentMonthTasks : currentMonthTasks.filter(t => t.user === selectedUser);
@@ -812,10 +851,15 @@ function renderStats() {
   const remainingMins = Math.round((totalHours - wholeHours) * 60);
   statTotalHours.textContent = `${wholeHours}h ${remainingMins > 0 ? remainingMins + 'm' : ''}`;
 
+  const completedCount = currentTasks.filter(t => (t.status || 'Fully Completed') === 'Fully Completed').length;
+  const inProgressCount = currentTasks.filter(t => t.status === 'In Progress').length;
+  if (statCompletedTasks) statCompletedTasks.textContent = completedCount;
+  if (statInProgressTasks) statInProgressTasks.textContent = inProgressCount;
+
   const activeProjectsCount = new Set(currentTasks.map(t => t.projectName).filter(Boolean)).size;
   statActiveProjects.textContent = activeProjectsCount;
 
-  statTotalUsers.textContent = users.length;
+  if (statTotalUsers) statTotalUsers.textContent = users.length;
 }
 
 // Render User List in Management Modal
@@ -944,10 +988,17 @@ function openTaskModal(taskId = null) {
       taskDescInput.value = task.tasks;
       taskStartTimeInput.value = task.startTime || '10:00';
       taskEndTimeInput.value = task.endTime || '18:30';
+      
+      if (task.status === 'In Progress') {
+        if (statusInProgressRadio) statusInProgressRadio.checked = true;
+      } else {
+        if (statusCompletedRadio) statusCompletedRadio.checked = true;
+      }
     }
   } else {
     modalTitle.textContent = 'Log Daily Work';
     taskIdInput.value = '';
+    if (statusCompletedRadio) statusCompletedRadio.checked = true;
   }
 
   updateCalcHours();
@@ -1217,6 +1268,7 @@ taskForm.addEventListener('submit', (e) => {
   const endTime = taskEndTimeInput.value;
   const hours = calculateHours(startTime, endTime);
   const workTimeFormatted = `${format12Hour(startTime)} TO ${format12Hour(endTime)}`;
+  const status = document.querySelector('input[name="taskStatusRadio"]:checked')?.value || 'Fully Completed';
 
   if (projectName && !projects.includes(projectName)) {
     projects.push(projectName);
@@ -1247,7 +1299,8 @@ taskForm.addEventListener('submit', (e) => {
         startTime,
         endTime,
         workTimeFormatted,
-        hours
+        hours,
+        status
       };
     }
   } else {
@@ -1260,7 +1313,8 @@ taskForm.addEventListener('submit', (e) => {
       startTime,
       endTime,
       workTimeFormatted,
-      hours
+      hours,
+      status
     };
     tasks.unshift(newTask);
   }
@@ -1432,7 +1486,7 @@ function exportToCsv() {
     return;
   }
 
-  const headers = ['SNO', 'DATE', 'USER', 'TASKS', 'WORK TIME', 'HOURS', 'PROJECT NAME'];
+  const headers = ['SNO', 'DATE', 'USER', 'TASKS', 'WORK TIME', 'HOURS', 'PROJECT NAME', 'STATUS'];
   const rows = filtered.map((t, idx) => [
     idx + 1,
     formatDateForDisplay(t.date),
@@ -1440,7 +1494,8 @@ function exportToCsv() {
     `"${(t.tasks || '').replace(/"/g, '""')}"`,
     `"${t.workTimeFormatted || `${format12Hour(t.startTime)} TO ${format12Hour(t.endTime)}`}"`,
     t.hours || calculateHours(t.startTime, t.endTime),
-    `"${(t.projectName || '').replace(/"/g, '""')}"`
+    `"${(t.projectName || '').replace(/"/g, '""')}"`,
+    `"${(t.status || 'Fully Completed').replace(/"/g, '""')}"`
   ]);
 
   const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -1464,9 +1519,8 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
     throw new Error('DOCX library not loaded yet. Please refresh or check connection.');
   }
 
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, WidthType, ShadingType, BorderStyle } = window.docx;
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, WidthType, ShadingType } = window.docx;
 
-  // Format Month & Period Display
   let monthDisplay = "September 2026";
   let periodStr = "01 Sep 2026 - 30 Sep 2026";
   if (monthStr && monthStr !== 'ALL') {
@@ -1478,12 +1532,13 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
   }
 
   const totalTasks = filteredTasks.length;
+  const completedCount = filteredTasks.filter(t => (t.status || 'Fully Completed') === 'Fully Completed').length;
+  const inProgressCount = filteredTasks.filter(t => t.status === 'In Progress').length;
   const totalHours = filteredTasks.reduce((acc, t) => acc + (Number(t.hours) || calculateHours(t.startTime, t.endTime)), 0);
   const uniqueProjects = [...new Set(filteredTasks.map(t => t.projectName).filter(Boolean))];
   const workingDays = new Set(filteredTasks.map(t => t.date)).size;
   const empId = `DHI-DEV-00${Math.abs(hashStr(userName)) % 90 + 10}`;
 
-  // Helper cell creator
   const createCell = (text, isHeader = false, bgHex = null, widthPercent = null) => {
     return new TableCell({
       children: [
@@ -1522,16 +1577,16 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
     });
   });
 
-  // 2. Detailed Work Log Rows
-  const logHeaders = ["S.No", "Date", "User", "Tasks / Work Description", "Work Time", "Hours"];
+  // 2. Detailed Work Log Rows with Status
   const logHeaderRow = new TableRow({
     children: [
-      createCell("S.No", true, "FEF3C7", 8),
-      createCell("Date", true, "FEF3C7", 14),
-      createCell("User", true, "FEF3C7", 14),
-      createCell("Tasks / Work Description", true, "FEF3C7", 40),
-      createCell("Work Time", true, "FEF3C7", 16),
-      createCell("Hours", true, "FEF3C7", 8)
+      createCell("S.No", true, "FEF3C7", 7),
+      createCell("Date", true, "FEF3C7", 13),
+      createCell("User", true, "FEF3C7", 13),
+      createCell("Tasks / Work Description", true, "FEF3C7", 35),
+      createCell("Work Time", true, "FEF3C7", 14),
+      createCell("Hours", true, "FEF3C7", 6),
+      createCell("Status", true, "FEF3C7", 12)
     ]
   });
 
@@ -1539,14 +1594,16 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
     const zebraBg = idx % 2 === 1 ? "F8FAFC" : null;
     const timeFormatted = task.workTimeFormatted || `${format12Hour(task.startTime)} TO ${format12Hour(task.endTime)}`;
     const hrs = task.hours ? `${task.hours} hrs` : `${calculateHours(task.startTime, task.endTime)} hrs`;
+    const statusText = task.status || 'Fully Completed';
     return new TableRow({
       children: [
-        createCell(String(idx + 1), false, zebraBg, 8),
-        createCell(formatDateForDisplay(task.date), false, zebraBg, 14),
-        createCell(task.user || '', false, zebraBg, 14),
-        createCell(task.tasks || '', false, zebraBg, 40),
-        createCell(timeFormatted, false, zebraBg, 16),
-        createCell(hrs, false, zebraBg, 8)
+        createCell(String(idx + 1), false, zebraBg, 7),
+        createCell(formatDateForDisplay(task.date), false, zebraBg, 13),
+        createCell(task.user || '', false, zebraBg, 13),
+        createCell(task.tasks || '', false, zebraBg, 35),
+        createCell(timeFormatted, false, zebraBg, 14),
+        createCell(hrs, false, zebraBg, 6),
+        createCell(statusText, false, zebraBg, 12)
       ]
     });
   });
@@ -1561,7 +1618,9 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
   });
 
   const perfRows = [
-    ["Tasks Assigned & Logged", `${totalTasks} Tasks`, "Meets expectations"],
+    ["Tasks Assigned & Logged", `${totalTasks} Tasks`, `${completedCount} Completed, ${inProgressCount} In Progress`],
+    ["Tasks Fully Completed", `${completedCount} Tasks`, "Milestones met"],
+    ["Tasks In Progress", `${inProgressCount} Tasks`, "Currently active in sprint"],
     ["Total Work Hours Logged", `${totalHours.toFixed(1)} Hours`, "Full commitment achieved"],
     ["Active Projects Delivered", uniqueProjects.join(', ') || 'General Development', "On schedule"],
     ["Working Days Present", `${workingDays} Days`, "100% attendance"],
@@ -1593,7 +1652,6 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
           }
         },
         children: [
-          // Title
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -1606,7 +1664,6 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
             ],
             spacing: { after: 120 }
           }),
-          // Subtitle
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -1619,7 +1676,6 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
             ],
             spacing: { after: 80 }
           }),
-          // Review Meta
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -1673,15 +1729,15 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
             spacing: { before: 300, after: 120 }
           }),
           new Paragraph({
-            text: `• Completed all ${totalTasks} sprint milestones across ${uniqueProjects.length || 1} project stream(s).`,
+            text: `• Completed ${completedCount} sprint milestones across ${uniqueProjects.length || 1} project stream(s).`,
+            spacing: { after: 60 }
+          }),
+          new Paragraph({
+            text: `• Managed ${inProgressCount} active ongoing development item(s) on schedule.`,
             spacing: { after: 60 }
           }),
           new Paragraph({
             text: "• Maintained consistent daily task logging, zero critical blocking defects reported.",
-            spacing: { after: 60 }
-          }),
-          new Paragraph({
-            text: "• Successfully delivered automation and SEO features within designated sprint cycles.",
             spacing: { after: 180 }
           }),
 
@@ -1692,7 +1748,7 @@ async function generateClientDocx(userName, monthStr, filteredTasks) {
             spacing: { before: 200, after: 120 }
           }),
           new Paragraph({
-            text: `${userName === 'ALL' ? 'The developer' : userName} consistently demonstrated strong ownership, timely task delivery, and technical expertise throughout ${monthDisplay}. Logged ${totalHours.toFixed(1)} total hours. Recommended to continue strong performance into the upcoming month.`,
+            text: `${userName === 'ALL' ? 'The developer' : userName} consistently demonstrated strong ownership, timely task delivery (${completedCount} completed), and technical expertise throughout ${monthDisplay}. Logged ${totalHours.toFixed(1)} total hours. Recommended to continue strong performance into the upcoming month.`,
             spacing: { after: 200 }
           }),
 
@@ -1752,11 +1808,9 @@ async function exportToDocx() {
   lucide.createIcons();
 
   try {
-    // 1. Try pure client-side DOCX generator (instant, offline & Vercel compatible)
     if (window.docx && window.saveAs) {
       await generateClientDocx(selectedUser, selectedMonth, filtered);
     } else {
-      // 2. Fallback to server endpoint
       const response = await fetch('/api/export-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1870,6 +1924,14 @@ function setupEventListeners() {
     });
   }
 
+  // Status Filter Event
+  if (statusFilterSelect) {
+    statusFilterSelect.addEventListener('change', (e) => {
+      selectedStatus = e.target.value;
+      renderTable();
+    });
+  }
+
   // Reminders Modal
   if (openRemindersBtn) {
     openRemindersBtn.addEventListener('click', openRemindersModal);
@@ -1941,8 +2003,10 @@ function setupEventListeners() {
   clearFiltersBtn.addEventListener('click', () => {
     searchQuery = '';
     selectedProject = '';
+    selectedStatus = '';
     searchInput.value = '';
     projectFilterSelect.value = '';
+    if (statusFilterSelect) statusFilterSelect.value = '';
     selectedMonth = getCurrentYearMonth();
     renderAll();
   });

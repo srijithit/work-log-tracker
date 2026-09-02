@@ -135,12 +135,12 @@ def generate_monthly_report_docx(user_name, month_str, tasks, users_info=None):
     h2.runs[0].font.size = Pt(12)
 
     if user_tasks:
-        t_work = doc.add_table(rows=len(user_tasks) + 1, cols=6)
+        t_work = doc.add_table(rows=len(user_tasks) + 1, cols=7)
         t_work.alignment = WD_TABLE_ALIGNMENT.CENTER
         t_work.autofit = False
 
-        headers = ["S.No", "Date", "User", "Tasks / Work Description", "Work Time", "Hours"]
-        widths = [Inches(0.5), Inches(1.1), Inches(1.1), Inches(2.8), Inches(1.2), Inches(0.7)]
+        headers = ["S.No", "Date", "User", "Tasks / Work Description", "Work Time", "Hours", "Status"]
+        widths = [Inches(0.4), Inches(1.0), Inches(1.0), Inches(2.6), Inches(1.1), Inches(0.6), Inches(1.0)]
         
         for col_idx, (h_text, w) in enumerate(zip(headers, widths)):
             cell = t_work.rows[0].cells[col_idx]
@@ -167,7 +167,8 @@ def generate_monthly_report_docx(user_name, month_str, tasks, users_info=None):
                 task.get('user', ''),
                 task.get('tasks', ''),
                 task.get('workTimeFormatted', f"{task.get('startTime', '')} - {task.get('endTime', '')}"),
-                f"{task.get('hours', 0)} hrs"
+                f"{task.get('hours', 0)} hrs",
+                task.get('status', 'Fully Completed')
             ]
 
             for col_idx, (val, w) in enumerate(zip(values, widths)):
